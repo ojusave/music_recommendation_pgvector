@@ -54,9 +54,9 @@ class KaggleDataProcessor:
         # Setup Kaggle credentials
         self.setup_kaggle_credentials()
         
-        # Load lightweight sentence transformer model
-        logger.info("Loading sentence transformer model (paraphrase-MiniLM-L3-v2)...")
-        self.model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
+        # Load better sentence transformer model for music search
+        logger.info("Loading sentence transformer model (all-mpnet-base-v2)...")
+        self.model = SentenceTransformer('all-mpnet-base-v2')
         logger.info(f"✅ Model loaded: {self.model.get_sentence_embedding_dimension()} dimensions")
         
         # Connect to database
@@ -216,9 +216,67 @@ class KaggleDataProcessor:
         # Apply column mapping
         chunk = chunk.rename(columns={'artist': 'band', 'song': 'song_name'})
         chunk['song_id'] = chunk.index.astype(str)
-        chunk['description'] = chunk['song_name'] + ' by ' + chunk['band']
+        
+        # Enhanced description with semantic information
+        chunk['description'] = chunk.apply(self.create_enhanced_description, axis=1)
         
         return chunk[['song_id', 'song_name', 'band', 'description']]
+    
+    def create_enhanced_description(self, row) -> str:
+        """Create enhanced description with inferred semantic information"""
+        song_name = str(row['song_name']).lower()
+        band = str(row['band']).lower()
+        
+        # Initialize description with basic info
+        description = f"{row['song_name']} by {row['band']}"
+        
+        # Infer genre from artist (basic heuristics)
+        genre_tags = []
+        if any(artist in band for artist in ['twitty', 'cash', 'nelson', 'williams', 'jones']):
+            genre_tags.append('country')
+        elif any(artist in band for artist in ['coldplay', 'radiohead', 'u2', 'oasis']):
+            genre_tags.append('rock')
+        elif any(artist in band for artist in ['sinatra', 'garland', 'bennett']):
+            genre_tags.append('jazz')
+        elif any(artist in band for artist in ['beyonce', 'swift', 'grande']):
+            genre_tags.append('pop')
+        
+        # Infer mood from song title
+        mood_tags = []
+        if any(word in song_name for word in ['sad', 'cry', 'tears', 'lonely', 'blue', 'hurt', 'pain']):
+            mood_tags.append('sad')
+        elif any(word in song_name for word in ['happy', 'joy', 'dance', 'party', 'celebrate']):
+            mood_tags.append('upbeat')
+        elif any(word in song_name for word in ['love', 'heart', 'romantic', 'kiss']):
+            mood_tags.append('romantic')
+        elif any(word in song_name for word in ['rain', 'storm', 'cloudy', 'grey']):
+            mood_tags.append('melancholic')
+        
+        # Infer song type
+        type_tags = []
+        if any(word in song_name for word in ['ballad', 'slow', 'tender']):
+            type_tags.append('ballad')
+        elif any(word in song_name for word in ['dance', 'beat', 'rhythm']):
+            type_tags.append('dance')
+        elif any(word in song_name for word in ['rock', 'roll']):
+            type_tags.append('rock')
+        
+        # Infer context
+        context_tags = []
+        if any(word in song_name for word in ['rain', 'rainy', 'storm']):
+            context_tags.append('rainy day music')
+        elif any(word in song_name for word in ['work', 'job', 'morning']):
+            context_tags.append('work music')
+        elif any(word in song_name for word in ['night', 'evening', 'midnight']):
+            context_tags.append('nighttime music')
+        
+        # Combine all tags
+        all_tags = genre_tags + mood_tags + type_tags + context_tags
+        
+        if all_tags:
+            description += f" - {', '.join(all_tags)}"
+        
+        return description
     
     def final_clean_dataframe(self, df: pd.DataFrame) -> pd.DataFrame:
         """Final cleaning and deduplication"""

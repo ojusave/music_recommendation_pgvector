@@ -50,7 +50,7 @@ async def setup_database():
         await connection.execute("DROP TABLE IF EXISTS songs CASCADE;")
         
         # Create songs table with vector column
-        # Using 384-dimensional vectors from paraphrase-MiniLM-L3-v2 model
+        # Using 768-dimensional vectors from all-mpnet-base-v2 model
         logger.info("Creating songs table...")
         create_table_query = """
         CREATE TABLE songs (
@@ -58,8 +58,8 @@ async def setup_database():
             song_id TEXT UNIQUE NOT NULL,
             song_name TEXT NOT NULL,
             band TEXT NOT NULL,
-            description TEXT NOT NULL,  -- "song_name by band" for embedding
-            embedding VECTOR(384),      -- 384-dimensional vectors
+            description TEXT NOT NULL,  -- Enhanced descriptions with genre/mood tags
+            embedding VECTOR(768),      -- 768-dimensional vectors
             created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
         );
         """

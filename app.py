@@ -73,7 +73,7 @@ class MusicRecommendationEngine:
         
         # Load the sentence transformer model
         # Using the same model as data processing ensures consistent embeddings
-        model_name = os.getenv('SENTENCE_TRANSFORMER_MODEL', 'paraphrase-MiniLM-L3-v2')
+        model_name = 'all-mpnet-base-v2'  # Force use of better model
         logger.info(f"Loading sentence transformer model: {model_name}...")
         self.model = SentenceTransformer(model_name)
         logger.info(f"Model loaded: {self.model.get_sentence_embedding_dimension()} dimensions")
@@ -138,8 +138,8 @@ class MusicRecommendationEngine:
         # Perform semantic similarity search using pgvector
         # This query demonstrates proper pgvector usage:
         # 1. Uses cosine distance (<->) for similarity measurement
-        # 2. Converts distance to meaningful similarity percentage
-        # 3. Shows actual match quality, not relative ranking
+        # 2. Converts distance to intuitive similarity percentage using exponential decay
+        # 3. Shows actual match quality with much better score distribution
         search_query = """
         SELECT 
             song_id,
@@ -147,10 +147,9 @@ class MusicRecommendationEngine:
             band,
             description,
             (embedding <-> $1::vector) as raw_distance,
-            -- Convert cosine distance to similarity percentage
-            -- For unnormalized vectors, distance can be higher than 2
-            -- Use exponential decay to convert distance to meaningful similarity
-            ROUND(CAST(GREATEST(0, 100.0 / (1.0 + (embedding <-> $1::vector))) AS numeric), 1) as similarity_score
+            -- More realistic similarity calculation
+            -- Converts cosine distance to percentage: Distance 0 = 100%, Distance 1 = 50%, Distance 2 = 0%
+            ROUND(CAST(GREATEST(0, (2.0 - (embedding <-> $1::vector)) * 50.0) AS numeric), 1) as similarity_score
         FROM songs 
         ORDER BY embedding <-> $1::vector ASC
         LIMIT $2
