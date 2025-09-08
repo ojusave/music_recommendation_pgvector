@@ -54,9 +54,9 @@ class KaggleDataProcessor:
         # Setup Kaggle credentials
         self.setup_kaggle_credentials()
         
-        # Load better sentence transformer model for music search
-        logger.info("Loading sentence transformer model (all-mpnet-base-v2)...")
-        self.model = SentenceTransformer('all-mpnet-base-v2')
+        # Load memory-efficient but better sentence transformer model
+        logger.info("Loading sentence transformer model (all-MiniLM-L6-v2)...")
+        self.model = SentenceTransformer('all-MiniLM-L6-v2')
         logger.info(f"✅ Model loaded: {self.model.get_sentence_embedding_dimension()} dimensions")
         
         # Connect to database
