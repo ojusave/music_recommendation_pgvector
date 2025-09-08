@@ -73,7 +73,7 @@ class MusicRecommendationEngine:
         
         # Load the sentence transformer model
         # Using the same model as data processing ensures consistent embeddings
-        model_name = 'all-MiniLM-L6-v2'  # Better model that fits in 512MB memory limit
+        model_name = 'paraphrase-MiniLM-L3-v2'  # Ultra-lightweight model for 512MB limit
         logger.info(f"Loading sentence transformer model: {model_name}...")
         self.model = SentenceTransformer(model_name)
         logger.info(f"Model loaded: {self.model.get_sentence_embedding_dimension()} dimensions")

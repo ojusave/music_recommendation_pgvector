@@ -54,9 +54,9 @@ class KaggleDataProcessor:
         # Setup Kaggle credentials
         self.setup_kaggle_credentials()
         
-        # Load memory-efficient but better sentence transformer model
-        logger.info("Loading sentence transformer model (all-MiniLM-L6-v2)...")
-        self.model = SentenceTransformer('all-MiniLM-L6-v2')
+        # Load ultra-lightweight sentence transformer model for memory constraints
+        logger.info("Loading sentence transformer model (paraphrase-MiniLM-L3-v2)...")
+        self.model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
         logger.info(f"✅ Model loaded: {self.model.get_sentence_embedding_dimension()} dimensions")
         
         # Connect to database

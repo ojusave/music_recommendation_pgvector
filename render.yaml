@@ -19,7 +19,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: SENTENCE_TRANSFORMER_MODEL
-        value: all-MiniLM-L6-v2
+        value: paraphrase-MiniLM-L3-v2
       - key: DEFAULT_RECOMMENDATION_LIMIT
         value: "5"
       - key: MAX_RECOMMENDATION_LIMIT
