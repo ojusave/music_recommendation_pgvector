@@ -69,10 +69,9 @@ A modern web application that demonstrates semantic music search using **pgvecto
    FLASK_ENV=production
    ```
 
-5. **Load Sample Data**:
-   ```bash
-   python process_data.py  # Run once to populate database
-   ```
+5. **Automatic Setup**:
+   The database and sample data are automatically set up when the app starts.
+   No manual steps required!
 
 ## Local Development
 
@@ -107,7 +106,7 @@ A modern web application that demonstrates semantic music search using **pgvecto
 
 5. **Load sample data**:
    ```bash
-   python process_data.py
+   # Data is loaded automatically - no manual step needed
    ```
 
 6. **Run the application**:
@@ -166,7 +165,7 @@ LIMIT 5;
 
 ### Adding New Data Sources
 
-1. **Modify `process_data.py`**:
+1. **Modify `src/database_setup.py`**:
    ```python
    # Add your data loading logic
    def load_custom_dataset():

@@ -146,7 +146,7 @@ class MusicRecommendationEngine:
         except Exception as e:
             await conn.close()
             if "does not exist" in str(e):
-                raise RuntimeError("Database not initialized. Please set up the database first by running database.py and process_data.py")
+                raise RuntimeError("Database not initialized. This should not happen with automatic setup - please check your database connection.")
             else:
                 raise e
         finally:
