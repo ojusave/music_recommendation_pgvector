@@ -118,6 +118,10 @@ class MusicRecommendationEngine:
         # Important: Use the same model and normalization as your stored vectors
         query_embedding = self.model.encode(query)
         
+        # Normalize the query embedding to unit length for proper cosine similarity
+        # This ensures cosine distances stay in the expected 0-2 range
+        query_embedding = query_embedding / np.linalg.norm(query_embedding)
+        
         # Convert numpy array to PostgreSQL vector format
         # pgvector expects vectors as string arrays: '[1.0, 2.0, 3.0]'
         query_vector_str = '[' + ','.join(map(str, query_embedding.tolist())) + ']'
@@ -131,9 +135,10 @@ class MusicRecommendationEngine:
             band,
             description,
             (embedding <-> $1::vector) as raw_distance,
-            -- More realistic similarity calculation
-            -- Converts cosine distance to percentage: Distance 0 = 100%, Distance 1 = 50%, Distance 2 = 0%
-            ROUND(CAST(GREATEST(0, (2.0 - (embedding <-> $1::vector)) * 50.0) AS numeric), 1) as similarity_score
+            -- Improved similarity calculation that handles larger distances
+            -- Uses a more robust formula: similarity = max(0, (1 - distance/2) * 100)
+            -- This handles distances > 2 gracefully and provides better scaling
+            ROUND(CAST(GREATEST(0, (1.0 - (embedding <-> $1::vector) / 2.0) * 100.0) AS numeric), 1) as similarity_score
         FROM songs 
         ORDER BY embedding <-> $1::vector ASC
         LIMIT $2
@@ -155,13 +160,19 @@ class MusicRecommendationEngine:
         # Convert database results to API-friendly format
         recommendations = []
         for row in results:
+            raw_distance = float(row['raw_distance'])
+            similarity_score = float(row['similarity_score'])
+            
+            # Debug logging to help troubleshoot similarity issues
+            logger.debug(f"Song: {row['song_name']} - Raw distance: {raw_distance:.4f}, Similarity: {similarity_score:.1f}%")
+            
             recommendation = {
                 'song_id': row['song_id'],
                 'song_name': row['song_name'],
                 'artist': row['band'],
                 'description': row['description'] or '',
-                'similarity_score': round(float(row['similarity_score']), 1),
-                'raw_distance': round(float(row['raw_distance']), 4)
+                'similarity_score': round(similarity_score, 1),
+                'raw_distance': round(raw_distance, 4)
             }
             
             # Add music service links (bonus feature)

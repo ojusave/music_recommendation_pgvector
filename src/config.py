@@ -31,6 +31,10 @@ class Config:
     # Model Configuration
     SENTENCE_TRANSFORMER_MODEL = os.getenv('SENTENCE_TRANSFORMER_MODEL', 'paraphrase-MiniLM-L3-v2')
     
+    # Kaggle API Configuration
+    KAGGLE_USERNAME = os.getenv('KAGGLE_USERNAME')
+    KAGGLE_KEY = os.getenv('KAGGLE_KEY')
+    
     # Database Pool Configuration
     DB_MIN_POOL_SIZE = int(os.getenv('DB_MIN_POOL_SIZE', '1'))
     DB_MAX_POOL_SIZE = int(os.getenv('DB_MAX_POOL_SIZE', '5'))
@@ -60,6 +64,12 @@ class Config:
         if not cls.DATABASE_URL:
             logging.error("DATABASE_URL environment variable is required!")
             sys.exit(1)
+        
+        # Kaggle credentials are optional - will use sample data if not provided
+        if cls.KAGGLE_USERNAME and cls.KAGGLE_KEY:
+            logging.info("Kaggle credentials found - will load real music dataset")
+        else:
+            logging.warning("Kaggle credentials not found - will use sample dataset")
         
         logging.info(f"Configuration loaded successfully")
         logging.info(f"Model: {cls.SENTENCE_TRANSFORMER_MODEL}")
