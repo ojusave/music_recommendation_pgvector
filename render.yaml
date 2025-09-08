@@ -1,20 +1,13 @@
-# Render Deployment Configuration
-# ==============================
-# 
-# This file configures the deployment of the music recommendation app on Render.
-# It defines both the web service and the PostgreSQL database with pgvector.
-
 services:
-  # Web Application Service
   - type: web
     name: music-recommendations
     env: python
-    plan: free  # Use 'starter' or higher for production
+    plan: free
     buildCommand: pip install -r requirements.txt
     startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --workers 2 --timeout 60
     envVars:
       - key: PYTHON_VERSION
-        value: 3.11.0
+        value: "3.11.0"
       - key: DATABASE_URL
         fromDatabase:
           name: music-recommendations-db
@@ -22,37 +15,21 @@ services:
       - key: FLASK_ENV
         value: production
       - key: FLASK_DEBUG
-        value: false
+        value: "false"
+      - key: SECRET_KEY
+        generateValue: true
+      - key: SENTENCE_TRANSFORMER_MODEL
+        value: paraphrase-MiniLM-L3-v2
+      - key: DEFAULT_RECOMMENDATION_LIMIT
+        value: "5"
+      - key: MAX_RECOMMENDATION_LIMIT
+        value: "10"
+      - key: LOG_LEVEL
+        value: INFO
 
 databases:
-  # PostgreSQL Database with pgvector
   - name: music-recommendations-db
     databaseName: music_recommendations
     user: music_user
-    plan: free  # Use 'starter' or higher for production
+    plan: free
     postgresMajorVersion: 15
-    # Enable pgvector extension
-    initScript: |
-      CREATE EXTENSION IF NOT EXISTS vector;
-      
-      -- Create the songs table with vector embeddings
-      CREATE TABLE IF NOT EXISTS songs (
-          song_id SERIAL PRIMARY KEY,
-          song_name VARCHAR(500) NOT NULL,
-          band VARCHAR(300) NOT NULL,
-          description TEXT,
-          embedding VECTOR(384),  -- 384 dimensions for paraphrase-MiniLM-L3-v2
-          created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-      );
-      
-      -- Create indexes for efficient searching
-      CREATE INDEX IF NOT EXISTS songs_embedding_cosine_idx 
-      ON songs USING ivfflat (embedding vector_cosine_ops) 
-      WITH (lists = 100);
-      
-      CREATE INDEX IF NOT EXISTS songs_band_idx ON songs (band);
-      CREATE INDEX IF NOT EXISTS songs_name_idx ON songs (song_name);
-      
-      -- Grant permissions
-      GRANT ALL PRIVILEGES ON TABLE songs TO music_user;
-      GRANT USAGE, SELECT ON SEQUENCE songs_song_id_seq TO music_user;
