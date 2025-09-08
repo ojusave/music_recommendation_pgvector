@@ -95,19 +95,165 @@ class MusicRecommendationEngine:
             }
         )
         
-        # Verify database setup
+        # Verify database setup and auto-initialize if needed
         async with self.connection_pool.acquire() as conn:
             try:
                 count = await conn.fetchval("SELECT COUNT(*) FROM songs")
                 logger.info(f"Database contains {count:,} songs")
                 
                 if count == 0:
-                    logger.warning("No songs found in database. Run process_data.py first!")
+                    logger.warning("No songs found in database. Auto-loading data...")
+                    await self.auto_setup_database()
             except Exception as e:
-                logger.warning(f"Songs table not found or database not initialized: {e}")
-                logger.warning("Database setup may be needed. Run database.py and process_data.py first!")
+                logger.warning(f"Songs table not found: {e}")
+                logger.info("Auto-setting up database and loading data...")
+                await self.auto_setup_database()
         
         logger.info("Music Recommendation Engine initialized successfully!")
+    
+    async def auto_setup_database(self):
+        """
+        Automatically set up database schema and load sample data.
+        This runs when the database is empty or not initialized.
+        """
+        try:
+            logger.info("🚀 Starting automatic database setup...")
+            
+            # Step 1: Create database schema
+            await self.create_database_schema()
+            
+            # Step 2: Load sample data
+            await self.load_sample_data()
+            
+            logger.info("✅ Automatic database setup completed!")
+            
+        except Exception as e:
+            logger.error(f"❌ Auto-setup failed: {e}")
+            raise
+    
+    async def create_database_schema(self):
+        """Create the songs table with proper schema."""
+        logger.info("Creating database schema...")
+        
+        async with self.connection_pool.acquire() as conn:
+            # Enable pgvector extension
+            await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+            
+            # Drop existing table if it exists
+            await conn.execute("DROP TABLE IF EXISTS songs CASCADE;")
+            
+            # Create songs table
+            create_table_query = """
+            CREATE TABLE songs (
+                id SERIAL PRIMARY KEY,
+                song_id TEXT UNIQUE NOT NULL,
+                song_name TEXT NOT NULL,
+                band TEXT NOT NULL,
+                description TEXT NOT NULL,
+                embedding VECTOR(384),
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+            """
+            await conn.execute(create_table_query)
+            
+            # Create indexes
+            await conn.execute("CREATE INDEX songs_embedding_idx ON songs USING ivfflat (embedding vector_cosine_ops) WITH (lists = 100);")
+            await conn.execute("CREATE INDEX songs_song_name_idx ON songs (song_name);")
+            await conn.execute("CREATE INDEX songs_band_idx ON songs (band);")
+            
+            logger.info("✅ Database schema created")
+    
+    async def load_sample_data(self):
+        """Load a small sample of music data for immediate functionality."""
+        logger.info("Loading sample music data...")
+        
+        # Sample songs with enhanced descriptions
+        sample_songs = [
+            {
+                'song_id': '1',
+                'song_name': 'Bohemian Rhapsody',
+                'band': 'Queen',
+                'description': 'Bohemian Rhapsody by Queen - rock, epic, operatic'
+            },
+            {
+                'song_id': '2', 
+                'song_name': 'Hotel California',
+                'band': 'Eagles',
+                'description': 'Hotel California by Eagles - rock, classic, mysterious'
+            },
+            {
+                'song_id': '3',
+                'song_name': 'Imagine',
+                'band': 'John Lennon',
+                'description': 'Imagine by John Lennon - peaceful, hopeful, ballad'
+            },
+            {
+                'song_id': '4',
+                'song_name': 'Stairway to Heaven',
+                'band': 'Led Zeppelin',
+                'description': 'Stairway to Heaven by Led Zeppelin - rock, epic, spiritual'
+            },
+            {
+                'song_id': '5',
+                'song_name': 'Purple Rain',
+                'band': 'Prince',
+                'description': 'Purple Rain by Prince - ballad, emotional, rainy day music'
+            },
+            {
+                'song_id': '6',
+                'song_name': 'Sweet Child O Mine',
+                'band': 'Guns N Roses',
+                'description': 'Sweet Child O Mine by Guns N Roses - rock, upbeat, energetic'
+            },
+            {
+                'song_id': '7',
+                'song_name': 'Yesterday',
+                'band': 'The Beatles',
+                'description': 'Yesterday by The Beatles - sad, ballad, melancholic'
+            },
+            {
+                'song_id': '8',
+                'song_name': 'Dancing Queen',
+                'band': 'ABBA',
+                'description': 'Dancing Queen by ABBA - dance, party, upbeat, disco'
+            },
+            {
+                'song_id': '9',
+                'song_name': 'The Sound of Silence',
+                'band': 'Simon and Garfunkel',
+                'description': 'The Sound of Silence by Simon and Garfunkel - melancholic, contemplative, folk'
+            },
+            {
+                'song_id': '10',
+                'song_name': 'Smells Like Teen Spirit',
+                'band': 'Nirvana',
+                'description': 'Smells Like Teen Spirit by Nirvana - rock, grunge, energetic, workout music'
+            }
+        ]
+        
+        # Generate embeddings for sample songs
+        descriptions = [song['description'] for song in sample_songs]
+        embeddings = self.model.encode(descriptions)
+        
+        # Insert into database
+        async with self.connection_pool.acquire() as conn:
+            insert_query = """
+            INSERT INTO songs (song_id, song_name, band, description, embedding)
+            VALUES ($1, $2, $3, $4, $5::vector)
+            """
+            
+            for i, song in enumerate(sample_songs):
+                embedding_str = '[' + ','.join(map(str, embeddings[i].tolist())) + ']'
+                await conn.execute(
+                    insert_query,
+                    song['song_id'],
+                    song['song_name'], 
+                    song['band'],
+                    song['description'],
+                    embedding_str
+                )
+        
+        logger.info(f"✅ Loaded {len(sample_songs)} sample songs")
     
     async def get_recommendations(self, query: str, limit: int = 5) -> List[Dict]:
         """
