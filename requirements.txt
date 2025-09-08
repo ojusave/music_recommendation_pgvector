@@ -2,7 +2,7 @@
 # =========================================
 # 
 # This file specifies all Python packages required for the music recommendation
-# web application to run on Render's platform.
+# web application deployment.
 
 # Web Framework
 Flask==2.3.3

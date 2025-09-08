@@ -1,6 +1,6 @@
 # Music Recommendation App with pgvector
 
-A modern web application that demonstrates semantic music search using **pgvector** with **Render's PostgreSQL**. Users can describe music in natural language and get intelligent recommendations based on semantic similarity.
+A modern web application that demonstrates semantic music search using **pgvector** with **PostgreSQL**. Users can describe music in natural language and get intelligent recommendations based on semantic similarity.
 
 ## Live Demo
 
@@ -13,7 +13,7 @@ A modern web application that demonstrates semantic music search using **pgvecto
 - **Real-time Results**: Fast similarity search with pgvector's optimized indexing
 - **Music Service Integration**: Direct links to YouTube and Spotify
 - **Responsive Design**: Works beautifully on desktop and mobile
-- **Production Ready**: Configured for easy deployment on Render
+- **Production Ready**: Configured for easy deployment
 
 ## Architecture
 
@@ -44,7 +44,7 @@ A modern web application that demonstrates semantic music search using **pgvecto
    - Optimized vector indexes for fast similarity search
    - Kaggle music dataset with rich metadata
 
-## Quick Deploy to Render
+## Quick Deploy
 
 ### Option 1: One-Click Deploy
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
@@ -53,7 +53,7 @@ A modern web application that demonstrates semantic music search using **pgvecto
 
 1. **Fork this repository**
 
-2. **Create a new Web Service on Render**:
+2. **Create a new Web Service**:
    - Connect your GitHub repository
    - Build Command: `pip install -r requirements.txt`
    - Start Command: `gunicorn --bind 0.0.0.0:$PORT app:app --workers 2`
@@ -273,6 +273,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built for the Render community**
+**Built for developers**
 
-*This demo showcases the power of combining modern ML techniques with PostgreSQL's vector capabilities on Render's platform.*
+*This demo showcases the power of combining modern ML techniques with PostgreSQL's vector capabilities.*

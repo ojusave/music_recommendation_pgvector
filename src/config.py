@@ -3,7 +3,7 @@ Configuration Module for Music Recommendation App
 ================================================
 
 This module centralizes all configuration settings for the application.
-Render customers can modify these settings to customize their deployment.
+Developers can modify these settings to customize their deployment.
 """
 
 import os
@@ -19,7 +19,7 @@ class Config:
     Configuration class that loads settings from environment variables.
     
     This demonstrates best practices for configuration management in
-    production applications deployed on Render.
+    production applications.
     """
     
     # Flask Configuration
@@ -54,7 +54,7 @@ class Config:
         """
         Validate that all required configuration is present.
         
-        This is important for Render deployments to catch configuration
+        This is important for deployments to catch configuration
         issues early in the deployment process.
         """
         if not cls.DATABASE_URL:

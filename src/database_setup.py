@@ -3,7 +3,7 @@ Database Setup Module for Music Recommendation App
 =================================================
 
 This module handles automatic database schema creation and sample data loading.
-It demonstrates how to set up pgvector with PostgreSQL on Render.
+It demonstrates how to set up pgvector with PostgreSQL.
 """
 
 import asyncpg

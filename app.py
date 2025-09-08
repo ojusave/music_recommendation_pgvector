@@ -3,7 +3,7 @@ Music Recommendation Web App
 ============================
 
 A Flask web application that demonstrates semantic music search using pgvector
-with Render's PostgreSQL. This app shows Render customers how to build
+with PostgreSQL. This app demonstrates how to build
 production-ready vector similarity search applications.
 
 Key Features:
@@ -13,7 +13,7 @@ Key Features:
 - YouTube and Spotify integration
 - Clean, lightweight frontend
 
-Built for deployment on Render with PostgreSQL + pgvector extension.
+Built for deployment with PostgreSQL + pgvector extension.
 """
 
 import asyncio
@@ -128,7 +128,7 @@ def api_status():
 @app.route('/health')
 def health_check():
     """
-    Simple health check endpoint for Render deployment monitoring.
+    Simple health check endpoint for deployment monitoring.
     
     This endpoint provides information about:
     - Service health status
@@ -185,8 +185,8 @@ if __name__ == '__main__':
     """
     Main entry point for local development.
     
-    For production deployment on Render, this section won't be used
-    as Render uses gunicorn to serve the application.
+    For production deployment, this section won't be used
+    as production servers typically use gunicorn to serve the application.
     """
     # Initialize the recommendation engine
     initialize_app()

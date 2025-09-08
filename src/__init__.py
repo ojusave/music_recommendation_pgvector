@@ -9,7 +9,7 @@ This package contains the core components of the music recommendation system:
 - database_setup: Automatic database schema creation and sample data loading
 
 This modular structure demonstrates best practices for organizing
-production applications deployed on Render.
+production applications.
 """
 
 from .config import Config
