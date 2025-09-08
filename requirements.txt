@@ -1,0 +1,31 @@
+# Music Recommendation Web App Dependencies
+# =========================================
+# 
+# This file specifies all Python packages required for the music recommendation
+# web application to run on Render's platform.
+
+# Web Framework
+Flask==2.3.3
+gunicorn==21.2.0
+
+# Database and Vector Operations
+asyncpg==0.29.0
+psycopg2-binary==2.9.7
+
+# Machine Learning and NLP
+sentence-transformers==2.2.2
+torch==2.1.0
+transformers==4.35.0
+scikit-learn==1.3.0
+numpy==1.24.3
+
+# Data Processing
+pandas==2.0.3
+
+# Utilities
+python-dotenv==1.0.0
+urllib3==2.0.7
+
+# Development and Testing (optional, but helpful)
+pytest==7.4.2
+pytest-asyncio==0.21.1

@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Music Recommendations - Powered by pgvector</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <div class="container">
+        <!-- Header Section -->
+        <header class="header">
+            <h1 class="title">Music Recommendations</h1>
+            <p class="subtitle">Discover music through natural language with pgvector + Render PostgreSQL</p>
+            <div class="tech-stack">
+                <span class="tech-badge">pgvector</span>
+                <span class="tech-badge">PostgreSQL</span>
+                <span class="tech-badge">Sentence Transformers</span>
+                <span class="tech-badge">Render</span>
+            </div>
+        </header>
+
+        <!-- Search Section -->
+        <section class="search-section">
+            <div class="search-container">
+                <div class="search-input-wrapper">
+                    <input 
+                        type="text" 
+                        id="searchInput" 
+                        class="search-input" 
+                        placeholder="Describe the music you're looking for... (e.g., 'upbeat rock songs for working out')"
+                        maxlength="200"
+                    >
+                    <button id="searchButton" class="search-button">
+                        <span class="button-text">Find Music</span>
+                        <span class="loading-spinner" style="display: none;">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 2V6M12 18V22M4.93 4.93L7.76 7.76M16.24 16.24L19.07 19.07M2 12H6M18 12H22M4.93 19.07L7.76 16.24M16.24 7.76L19.07 4.93" stroke="currentColor" stroke-width="2" stroke-linecap="round"/>
+                            </svg>
+                        </span>
+                    </button>
+                </div>
+                <div class="search-options">
+                    <label class="option-label">
+                        Number of recommendations:
+                        <select id="limitSelect" class="limit-select">
+                            <option value="3">3 songs</option>
+                            <option value="5" selected>5 songs</option>
+                            <option value="7">7 songs</option>
+                        </select>
+                    </label>
+                </div>
+            </div>
+        </section>
+
+        <!-- Example Queries Section -->
+        <section class="examples-section">
+            <h3 class="examples-title">Try these example searches:</h3>
+            <div class="example-queries">
+                <button class="example-query" data-query="upbeat rock music for working out">Rock workout music</button>
+                <button class="example-query" data-query="romantic love songs for a wedding">Wedding love songs</button>
+                <button class="example-query" data-query="chill electronic music for studying">Study music</button>
+                <button class="example-query" data-query="classic jazz for a dinner party">Dinner jazz</button>
+                <button class="example-query" data-query="sad ballads for rainy days">Rainy day ballads</button>
+                <button class="example-query" data-query="energetic dance music for a party">Party dance music</button>
+            </div>
+        </section>
+
+        <!-- Results Section -->
+        <section id="resultsSection" class="results-section" style="display: none;">
+            <h3 class="results-title">Recommendations</h3>
+            <div id="resultsContainer" class="results-container">
+                <!-- Results will be populated by JavaScript -->
+            </div>
+        </section>
+
+        <!-- Error Section -->
+        <section id="errorSection" class="error-section" style="display: none;">
+            <div class="error-message">
+                <h3>Oops! Something went wrong</h3>
+                <p id="errorText"></p>
+                <button id="retryButton" class="retry-button">Try Again</button>
+            </div>
+        </section>
+
+        <!-- Footer Section -->
+        <footer class="footer">
+            <div class="footer-content">
+                <div class="footer-section">
+                    <h4>About This Demo</h4>
+                    <p>This application demonstrates semantic music search using pgvector with Render's PostgreSQL. 
+                    It uses sentence transformers to convert natural language queries into vector embeddings, 
+                    then performs similarity search against a database of song embeddings.</p>
+                </div>
+                <div class="footer-section">
+                    <h4>Technology Stack</h4>
+                    <ul>
+                        <li><strong>Backend:</strong> Python Flask</li>
+                        <li><strong>Database:</strong> PostgreSQL with pgvector</li>
+                        <li><strong>ML Model:</strong> SentenceTransformer (paraphrase-MiniLM-L3-v2)</li>
+                        <li><strong>Deployment:</strong> Render</li>
+                        <li><strong>Data:</strong> Kaggle music dataset</li>
+                    </ul>
+                </div>
+                <div class="footer-section">
+                    <h4>Key Features</h4>
+                    <ul>
+                        <li>Natural language music search</li>
+                        <li>Semantic similarity matching</li>
+                        <li>Real-time recommendations</li>
+                        <li>YouTube & Spotify integration</li>
+                        <li>Responsive design</li>
+                    </ul>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>Built as a demo for Render customers • <a href="https://render.com" target="_blank">Learn more about Render</a></p>
+            </div>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
