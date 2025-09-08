@@ -2,11 +2,11 @@
 
 A modern web application that demonstrates semantic music search using **pgvector** with **Render's PostgreSQL**. Users can describe music in natural language and get intelligent recommendations based on semantic similarity.
 
-## 🎵 Live Demo
+## Live Demo
 
 [**Try the live app →**](https://music-recommendations.onrender.com) *(Deploy to get your URL)*
 
-## ✨ Features
+## Features
 
 - **Natural Language Search**: "upbeat rock music for working out" → relevant song recommendations
 - **Semantic Similarity**: Uses sentence transformers and vector embeddings for intelligent matching
@@ -15,7 +15,7 @@ A modern web application that demonstrates semantic music search using **pgvecto
 - **Responsive Design**: Works beautifully on desktop and mobile
 - **Production Ready**: Configured for easy deployment on Render
 
-## 🏗️ Architecture
+## Architecture
 
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
@@ -44,7 +44,7 @@ A modern web application that demonstrates semantic music search using **pgvecto
    - Optimized vector indexes for fast similarity search
    - Kaggle music dataset with rich metadata
 
-## 🚀 Quick Deploy to Render
+## Quick Deploy to Render
 
 ### Option 1: One-Click Deploy
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
@@ -117,7 +117,7 @@ A modern web application that demonstrates semantic music search using **pgvecto
 
 7. **Open in browser**: http://localhost:5000
 
-## 📊 Understanding the Code
+## Understanding the Code
 
 ### Vector Embeddings Pipeline
 
@@ -162,7 +162,7 @@ LIMIT 5;
    - Uses `asyncpg` for non-blocking database queries
    - Connection pooling for production performance
 
-## 🎯 Customization Guide
+## Customization Guide
 
 ### Adding New Data Sources
 
@@ -202,7 +202,7 @@ model = SentenceTransformer('your-model-name')
 - **Functionality**: Modify `static/js/app.js`
 - **Layout**: Update `templates/index.html`
 
-## 🔧 Production Considerations
+## Production Considerations
 
 ### Performance Optimization
 
@@ -274,6 +274,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ---
 
-**Built with ❤️ for the Render community**
+**Built for the Render community**
 
 *This demo showcases the power of combining modern ML techniques with PostgreSQL's vector capabilities on Render's platform.*

@@ -57,12 +57,12 @@ class KaggleDataProcessor:
         # Load ultra-lightweight sentence transformer model for memory constraints
         logger.info("Loading sentence transformer model (paraphrase-MiniLM-L3-v2)...")
         self.model = SentenceTransformer('paraphrase-MiniLM-L3-v2')
-        logger.info(f"✅ Model loaded: {self.model.get_sentence_embedding_dimension()} dimensions")
+        logger.info(f"Model loaded: {self.model.get_sentence_embedding_dimension()} dimensions")
         
         # Connect to database
         logger.info("Connecting to Render PostgreSQL...")
         self.connection = await asyncpg.connect(DATABASE_URL)
-        logger.info("✅ Database connected")
+        logger.info("Database connected")
     
     def setup_kaggle_credentials(self):
         """Setup Kaggle API credentials"""
@@ -77,7 +77,7 @@ class KaggleDataProcessor:
         
         # Set appropriate permissions
         credentials_file.chmod(0o600)
-        logger.info("✅ Kaggle credentials configured")
+        logger.info("Kaggle credentials configured")
     
     def download_dataset(self, temp_dir: str) -> str:
         """
@@ -106,12 +106,12 @@ class KaggleDataProcessor:
             
             # Use the largest CSV file (assuming it's the main dataset)
             main_file = max(data_files, key=lambda f: f.stat().st_size)
-            logger.info(f"✅ Dataset downloaded: {main_file.name} ({main_file.stat().st_size / 1024 / 1024:.1f} MB)")
+            logger.info(f"Dataset downloaded: {main_file.name} ({main_file.stat().st_size / 1024 / 1024:.1f} MB)")
             
             return str(main_file)
             
         except Exception as e:
-            logger.error(f"❌ Failed to download dataset: {e}")
+            logger.error(f"Failed to download dataset: {e}")
             raise
     
     def sample_songs(self, file_path: str) -> pd.DataFrame:
@@ -190,14 +190,14 @@ class KaggleDataProcessor:
             # Final cleaning
             df = self.final_clean_dataframe(df)
             
-            logger.info(f"✅ Sampled {len(df):,} songs")
+            logger.info(f"Sampled {len(df):,} songs")
             logger.info(f"Columns: {list(df.columns)}")
             logger.info(f"Sample data:\n{df.head()}")
             
             return df
             
         except Exception as e:
-            logger.error(f"❌ Failed to sample songs: {e}")
+            logger.error(f"Failed to sample songs: {e}")
             raise
     
     def clean_dataframe_chunk(self, chunk: pd.DataFrame) -> pd.DataFrame:
@@ -289,7 +289,7 @@ class KaggleDataProcessor:
         df = df.reset_index(drop=True)
         df['song_id'] = df.index.astype(str)
         
-        logger.info(f"✅ Final cleaned dataframe: {len(df):,} unique songs")
+        logger.info(f"Final cleaned dataframe: {len(df):,} unique songs")
         return df
     
     def generate_embeddings(self, descriptions: List[str]) -> np.ndarray:
@@ -319,11 +319,11 @@ class KaggleDataProcessor:
             # Combine all embeddings
             embeddings = np.vstack(all_embeddings)
             
-            logger.info(f"✅ Generated {len(embeddings):,} embeddings of {embeddings.shape[1]} dimensions")
+            logger.info(f"Generated {len(embeddings):,} embeddings of {embeddings.shape[1]} dimensions")
             return embeddings
             
         except Exception as e:
-            logger.error(f"❌ Failed to generate embeddings: {e}")
+            logger.error(f"Failed to generate embeddings: {e}")
             raise
     
     async def insert_songs(self, df: pd.DataFrame, embeddings: np.ndarray):
@@ -369,15 +369,15 @@ class KaggleDataProcessor:
             
             # Verify insertion
             total_count = await self.connection.fetchval("SELECT COUNT(*) FROM songs")
-            logger.info(f"✅ Database now contains {total_count:,} songs")
+            logger.info(f"Database now contains {total_count:,} songs")
             
         except Exception as e:
-            logger.error(f"❌ Failed to insert songs: {e}")
+            logger.error(f"Failed to insert songs: {e}")
             raise
     
     async def process_dataset(self):
         """Main processing pipeline"""
-        logger.info("🎵 Starting Kaggle dataset processing pipeline...")
+        logger.info("Starting Kaggle dataset processing pipeline...")
         
         with tempfile.TemporaryDirectory() as temp_dir:
             try:
@@ -393,18 +393,18 @@ class KaggleDataProcessor:
                 # Step 4: Insert into database
                 await self.insert_songs(df, embeddings)
                 
-                logger.info("🚀 Processing pipeline completed successfully!")
+                logger.info("Processing pipeline completed successfully!")
                 
                 # Show some stats
                 await self.show_stats()
                 
             except Exception as e:
-                logger.error(f"❌ Pipeline failed: {e}")
+                logger.error(f"Pipeline failed: {e}")
                 raise
     
     async def show_stats(self):
         """Show database statistics"""
-        logger.info("📊 Database Statistics:")
+        logger.info("Database Statistics:")
         
         total_songs = await self.connection.fetchval("SELECT COUNT(*) FROM songs")
         logger.info(f"   Total songs: {total_songs:,}")
@@ -425,7 +425,7 @@ class KaggleDataProcessor:
         """Clean up resources"""
         if self.connection:
             await self.connection.close()
-            logger.info("✅ Database connection closed")
+            logger.info("Database connection closed")
 
 async def main():
     """Main function"""
@@ -435,17 +435,17 @@ async def main():
         await processor.setup()
         await processor.process_dataset()
     except Exception as e:
-        logger.error(f"❌ Processing failed: {e}")
+        logger.error(f"Processing failed: {e}")
         raise
     finally:
         await processor.cleanup()
 
 if __name__ == "__main__":
-    print("🎵 Music Recommendation App - Kaggle Data Processing")
+    print("Music Recommendation App - Kaggle Data Processing")
     print("=" * 60)
-    print(f"📊 Target: {SAMPLE_SIZE:,} songs")
-    print(f"🤖 Model: paraphrase-MiniLM-L3-v2 (384 dimensions)")
-    print(f"🗄️  Database: Render PostgreSQL")
+    print(f"Target: {SAMPLE_SIZE:,} songs")
+    print(f"Model: paraphrase-MiniLM-L3-v2 (384 dimensions)")
+    print(f"Database: Render PostgreSQL")
     print("=" * 60)
     
     asyncio.run(main())

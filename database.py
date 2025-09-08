@@ -31,12 +31,12 @@ async def setup_database():
     try:
         # Connect to the database
         connection = await asyncpg.connect(DATABASE_URL, ssl='require')
-        logger.info("✅ Connected to database successfully")
+        logger.info("Connected to database successfully")
         
         # Enable pgvector extension
         logger.info("Enabling pgvector extension...")
         await connection.execute("CREATE EXTENSION IF NOT EXISTS vector;")
-        logger.info("✅ pgvector extension enabled")
+        logger.info("pgvector extension enabled")
         
         # Check if pgvector is available
         result = await connection.fetchval(
@@ -64,7 +64,7 @@ async def setup_database():
         );
         """
         await connection.execute(create_table_query)
-        logger.info("✅ Songs table created")
+        logger.info("Songs table created")
         
         # Create index for efficient vector similarity search
         # Using IVFFlat index with cosine distance for semantic similarity
@@ -75,21 +75,21 @@ async def setup_database():
         WITH (lists = 100);
         """
         await connection.execute(index_query)
-        logger.info("✅ Vector index created")
+        logger.info("Vector index created")
         
         # Create additional indexes for metadata searching
         logger.info("Creating metadata indexes...")
         await connection.execute("CREATE INDEX songs_song_name_idx ON songs (song_name);")
         await connection.execute("CREATE INDEX songs_band_idx ON songs (band);")
         await connection.execute("CREATE INDEX songs_description_idx ON songs USING gin(to_tsvector('english', description));")
-        logger.info("✅ Metadata indexes created")
+        logger.info("Metadata indexes created")
         
         # Verify setup
         logger.info("Verifying database setup...")
         table_count = await connection.fetchval("SELECT COUNT(*) FROM information_schema.tables WHERE table_name = 'songs'")
         index_count = await connection.fetchval("SELECT COUNT(*) FROM pg_indexes WHERE tablename = 'songs'")
         
-        logger.info(f"✅ Database setup complete!")
+        logger.info(f"Database setup complete!")
         logger.info(f"   - Tables: {table_count}")
         logger.info(f"   - Indexes: {index_count}")
         logger.info(f"   - Ready for {50000:,} songs")
@@ -97,7 +97,7 @@ async def setup_database():
         await connection.close()
         
     except Exception as e:
-        logger.error(f"❌ Database setup failed: {e}")
+        logger.error(f"Database setup failed: {e}")
         raise
 
 async def test_connection():
@@ -114,16 +114,16 @@ async def test_connection():
         )
         print("   Connection established, testing query...")
         result = await connection.fetchval("SELECT version();")
-        logger.info(f"✅ Database connection test successful")
+        logger.info(f"Database connection test successful")
         logger.info(f"   PostgreSQL version: {result}")
         await connection.close()
         return True
     except asyncio.TimeoutError:
-        logger.error(f"❌ Database connection timeout - database may be suspended")
+        logger.error(f"Database connection timeout - database may be suspended")
         logger.error(f"   Try accessing your Render dashboard to wake up the database")
         return False
     except Exception as e:
-        logger.error(f"❌ Database connection failed: {e}")
+        logger.error(f"Database connection failed: {e}")
         logger.error(f"   Error type: {type(e).__name__}")
         
         # Check if it's a common issue
@@ -139,7 +139,7 @@ async def test_connection():
         return False
 
 if __name__ == "__main__":
-    print("🎵 Music Recommendation App - Database Setup")
+    print("Music Recommendation App - Database Setup")
     print("=" * 50)
     
     # Test connection first
@@ -147,6 +147,6 @@ if __name__ == "__main__":
     if asyncio.run(test_connection()):
         print("\n2. Setting up database schema...")
         asyncio.run(setup_database())
-        print("\n🚀 Database setup complete! Ready for data processing.")
+        print("\nDatabase setup complete! Ready for data processing.")
     else:
-        print("\n❌ Cannot proceed without database connection.")
+        print("\nCannot proceed without database connection.")

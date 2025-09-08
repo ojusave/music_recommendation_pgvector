@@ -117,7 +117,7 @@ class MusicRecommendationEngine:
         This runs when the database is empty or not initialized.
         """
         try:
-            logger.info("🚀 Starting automatic database setup...")
+            logger.info("Starting automatic database setup...")
             
             # Step 1: Create database schema
             await self.create_database_schema()
@@ -125,10 +125,10 @@ class MusicRecommendationEngine:
             # Step 2: Load sample data
             await self.load_sample_data()
             
-            logger.info("✅ Automatic database setup completed!")
+            logger.info("Automatic database setup completed!")
             
         except Exception as e:
-            logger.error(f"❌ Auto-setup failed: {e}")
+            logger.error(f"Auto-setup failed: {e}")
             raise
     
     async def create_database_schema(self):
@@ -161,7 +161,7 @@ class MusicRecommendationEngine:
             await conn.execute("CREATE INDEX songs_song_name_idx ON songs (song_name);")
             await conn.execute("CREATE INDEX songs_band_idx ON songs (band);")
             
-            logger.info("✅ Database schema created")
+            logger.info("Database schema created")
     
     async def load_sample_data(self):
         """Load a small sample of music data for immediate functionality."""
@@ -253,7 +253,7 @@ class MusicRecommendationEngine:
                     embedding_str
                 )
         
-        logger.info(f"✅ Loaded {len(sample_songs)} sample songs")
+        logger.info(f"Loaded {len(sample_songs)} sample songs")
     
     async def get_recommendations(self, query: str, limit: int = 5) -> List[Dict]:
         """
