@@ -97,11 +97,15 @@ class MusicRecommendationEngine:
         
         # Verify database setup
         async with self.connection_pool.acquire() as conn:
-            count = await conn.fetchval("SELECT COUNT(*) FROM songs")
-            logger.info(f"Database contains {count:,} songs")
-            
-            if count == 0:
-                logger.warning("No songs found in database. Run process_data.py first!")
+            try:
+                count = await conn.fetchval("SELECT COUNT(*) FROM songs")
+                logger.info(f"Database contains {count:,} songs")
+                
+                if count == 0:
+                    logger.warning("No songs found in database. Run process_data.py first!")
+            except Exception as e:
+                logger.warning(f"Songs table not found or database not initialized: {e}")
+                logger.warning("Database setup may be needed. Run database.py and process_data.py first!")
         
         logger.info("Music Recommendation Engine initialized successfully!")
     
@@ -159,6 +163,12 @@ class MusicRecommendationEngine:
         conn = await asyncpg.connect(DATABASE_URL)
         try:
             results = await conn.fetch(search_query, query_vector_str, limit)
+        except Exception as e:
+            await conn.close()
+            if "does not exist" in str(e):
+                raise RuntimeError("Database not initialized. Please set up the database first by running database.py and process_data.py")
+            else:
+                raise e
         finally:
             await conn.close()
         
@@ -331,7 +341,30 @@ def api_status():
 @app.route('/health')
 def health_check():
     """Simple health check endpoint for Render deployment monitoring."""
-    return jsonify({'status': 'healthy', 'service': 'music-recommendations'})
+    try:
+        # Check if database is initialized
+        stats = asyncio.run(recommendation_engine.get_database_stats())
+        if 'error' in stats:
+            return jsonify({
+                'status': 'healthy', 
+                'service': 'music-recommendations',
+                'database': 'not_initialized',
+                'message': 'App is running but database needs setup'
+            })
+        else:
+            return jsonify({
+                'status': 'healthy', 
+                'service': 'music-recommendations',
+                'database': 'ready',
+                'songs': stats.get('total_songs', 0)
+            })
+    except Exception as e:
+        return jsonify({
+            'status': 'healthy', 
+            'service': 'music-recommendations',
+            'database': 'unknown',
+            'message': 'App is running but database status unclear'
+        })
 
 def initialize_app():
     """Initialize the application components."""
