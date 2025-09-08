@@ -52,7 +52,7 @@ class DatabaseSetup:
             await conn.execute("DROP TABLE IF EXISTS songs CASCADE;")
             
             # Create songs table with vector column
-            # Vector dimension (384) must match your embedding model
+            # Vector dimension (768) must match your embedding model
             create_table_query = """
             CREATE TABLE songs (
                 id SERIAL PRIMARY KEY,
@@ -60,7 +60,7 @@ class DatabaseSetup:
                 song_name TEXT NOT NULL,
                 band TEXT NOT NULL,
                 description TEXT NOT NULL,
-                embedding VECTOR(384),  -- 384 dimensions for paraphrase-MiniLM-L3-v2
+                embedding VECTOR(768),  -- 768 dimensions for all-mpnet-base-v2
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             """
@@ -183,8 +183,12 @@ class DatabaseSetup:
                             track_name = track_name[:200]
                             artist_name = artist_name[:100]
                             
-                            # Create rich description for semantic search
-                            description_parts = [f"{track_name} by {artist_name}"]
+                            # Create rich description for semantic search with artist emphasis
+                            description_parts = [
+                                f"{track_name} by {artist_name}",
+                                f"artist: {artist_name}",  # Add explicit artist mention for better artist searches
+                                f"song: {track_name}"      # Add explicit song mention for better song searches
+                            ]
                             
                             # Add album information if available
                             for col in ['album_name', 'album']:
@@ -223,7 +227,7 @@ class DatabaseSetup:
                                     except:
                                         continue
                             
-                            # Create final description
+                            # Create final description with better semantic search support
                             description = " - ".join(description_parts)[:500]
                             
                             # Use original song_id from dataset if available, otherwise generate one
@@ -276,61 +280,61 @@ class DatabaseSetup:
                 'song_id': '1',
                 'song_name': 'Bohemian Rhapsody',
                 'band': 'Queen',
-                'description': 'Bohemian Rhapsody by Queen - rock, epic, operatic'
+                'description': 'Bohemian Rhapsody by Queen - artist: Queen - song: Bohemian Rhapsody - rock, epic, operatic'
             },
             {
                 'song_id': '2', 
                 'song_name': 'Hotel California',
                 'band': 'Eagles',
-                'description': 'Hotel California by Eagles - rock, classic, mysterious'
+                'description': 'Hotel California by Eagles - artist: Eagles - song: Hotel California - rock, classic, mysterious'
             },
             {
                 'song_id': '3',
                 'song_name': 'Imagine',
                 'band': 'John Lennon',
-                'description': 'Imagine by John Lennon - peaceful, hopeful, ballad'
+                'description': 'Imagine by John Lennon - artist: John Lennon - song: Imagine - peaceful, hopeful, ballad'
             },
             {
                 'song_id': '4',
                 'song_name': 'Stairway to Heaven',
                 'band': 'Led Zeppelin',
-                'description': 'Stairway to Heaven by Led Zeppelin - rock, epic, spiritual'
+                'description': 'Stairway to Heaven by Led Zeppelin - artist: Led Zeppelin - song: Stairway to Heaven - rock, epic, spiritual'
             },
             {
                 'song_id': '5',
                 'song_name': 'Purple Rain',
                 'band': 'Prince',
-                'description': 'Purple Rain by Prince - ballad, emotional, rainy day music'
+                'description': 'Purple Rain by Prince - artist: Prince - song: Purple Rain - ballad, emotional, rainy day music'
             },
             {
                 'song_id': '6',
                 'song_name': 'Sweet Child O Mine',
                 'band': 'Guns N Roses',
-                'description': 'Sweet Child O Mine by Guns N Roses - rock, upbeat, energetic'
+                'description': 'Sweet Child O Mine by Guns N Roses - artist: Guns N Roses - song: Sweet Child O Mine - rock, upbeat, energetic'
             },
             {
                 'song_id': '7',
                 'song_name': 'Yesterday',
                 'band': 'The Beatles',
-                'description': 'Yesterday by The Beatles - sad, ballad, melancholic'
+                'description': 'Yesterday by The Beatles - artist: The Beatles - song: Yesterday - sad, ballad, melancholic'
             },
             {
                 'song_id': '8',
                 'song_name': 'Dancing Queen',
                 'band': 'ABBA',
-                'description': 'Dancing Queen by ABBA - dance, party, upbeat, disco'
+                'description': 'Dancing Queen by ABBA - artist: ABBA - song: Dancing Queen - dance, party, upbeat, disco'
             },
             {
                 'song_id': '9',
                 'song_name': 'The Sound of Silence',
                 'band': 'Simon and Garfunkel',
-                'description': 'The Sound of Silence by Simon and Garfunkel - melancholic, contemplative, folk'
+                'description': 'The Sound of Silence by Simon and Garfunkel - artist: Simon and Garfunkel - song: The Sound of Silence - melancholic, contemplative, folk'
             },
             {
                 'song_id': '10',
                 'song_name': 'Smells Like Teen Spirit',
                 'band': 'Nirvana',
-                'description': 'Smells Like Teen Spirit by Nirvana - rock, grunge, energetic, workout music'
+                'description': 'Smells Like Teen Spirit by Nirvana - artist: Nirvana - song: Smells Like Teen Spirit - rock, grunge, energetic, workout music'
             }
         ]
         

@@ -29,7 +29,7 @@ class Config:
     DATABASE_URL = os.getenv('DATABASE_URL')
     
     # Model Configuration
-    SENTENCE_TRANSFORMER_MODEL = os.getenv('SENTENCE_TRANSFORMER_MODEL', 'paraphrase-MiniLM-L3-v2')
+    SENTENCE_TRANSFORMER_MODEL = os.getenv('SENTENCE_TRANSFORMER_MODEL', 'all-mpnet-base-v2')
     
     # Kaggle API Configuration
     KAGGLE_USERNAME = os.getenv('KAGGLE_USERNAME')

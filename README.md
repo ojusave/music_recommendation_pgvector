@@ -4,7 +4,7 @@ A modern web application that demonstrates semantic music search using **pgvecto
 
 ## Live Demo
 
-[**Try the live app**](https://music-recommendations.onrender.com) *(Deploy to get your URL)*
+[**Try the live app**](https://music-recommendations-hz3i.onrender.com)
 
 ## Features
 
@@ -253,7 +253,7 @@ model = SentenceTransformer('your-model-name')
 - [Render Docs](https://render.com/docs)
 - [PostgreSQL on Render](https://render.com/docs/databases)
 
-## 🤝 Contributing
+## Contributing
 
 1. Fork the repository
 2. Create a feature branch: `git checkout -b feature/amazing-feature`
