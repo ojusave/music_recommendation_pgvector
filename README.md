@@ -4,11 +4,11 @@ A modern web application that demonstrates semantic music search using **pgvecto
 
 ## Live Demo
 
-[**Try the live app →**](https://music-recommendations.onrender.com) *(Deploy to get your URL)*
+[**Try the live app**](https://music-recommendations.onrender.com) *(Deploy to get your URL)*
 
 ## Features
 
-- **Natural Language Search**: "upbeat rock music for working out" → relevant song recommendations
+- **Natural Language Search**: "upbeat rock music for working out" leads to relevant song recommendations
 - **Semantic Similarity**: Uses sentence transformers and vector embeddings for intelligent matching
 - **Real-time Results**: Fast similarity search with pgvector's optimized indexing
 - **Music Service Integration**: Direct links to YouTube and Spotify
@@ -74,7 +74,7 @@ A modern web application that demonstrates semantic music search using **pgvecto
    python process_data.py  # Run once to populate database
    ```
 
-## 💻 Local Development
+## Local Development
 
 ### Prerequisites
 - Python 3.11+
@@ -262,11 +262,11 @@ model = SentenceTransformer('your-model-name')
 4. Push to branch: `git push origin feature/amazing-feature`
 5. Open a Pull Request
 
-## 📝 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 💡 Support
+## Support
 
 - **Issues**: [GitHub Issues](https://github.com/your-repo/issues)
 - **Discussions**: [GitHub Discussions](https://github.com/your-repo/discussions)
