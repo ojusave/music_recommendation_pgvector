@@ -20,11 +20,13 @@ A web app that lets you search for music using natural language (like "sad piano
 ## Quick Start 
 
 **One-Click Deploy:** 
+
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
 *Wait 2-3 minutes and your app is live!*
 
 **What's a vector?** 
+
 Think of it as a list of numbers that represents the "meaning" of text. Similar meanings have similar numbers.
 
 **Example:**
@@ -43,6 +45,93 @@ Think of it as a list of numbers that represents the "meaning" of text. Similar 
 5. **Ranking**: Songs are ranked by similarity score and returned as recommendations
 
 **Why this works**: The sentence transformer model was trained on millions of text pairs, learning that "sad" and "melancholic" have similar meanings, "piano" and "ballad" often go together, etc.
+
+## pgvector Optimizations for Production
+
+### Performance Improvements (NEW!)
+
+This app now uses advanced **pgvector features** for optimal performance on Render's starter tier (0.5 CPU, 512MB memory):
+
+#### 1. **Half-Precision Vectors (50% Memory Savings)**
+```sql
+-- Before: Standard vectors (1.5KB per song)
+embedding VECTOR(384)
+
+-- After: Half-precision vectors (768 bytes per song) 
+embedding HALFVEC(384)
+```
+**Impact**: 50,000 songs now use 37.5MB instead of 75MB!
+
+#### 2. **Native Cosine Distance**
+```sql
+-- Before: L2 distance on normalized vectors
+ORDER BY embedding <-> $1::vector ASC
+
+-- After: pgvector's native cosine distance (more efficient)
+ORDER BY embedding <=> l2_normalize($1::halfvec) ASC
+```
+
+#### 3. **Database-Level Vector Operations**
+```sql
+-- Vector normalization now happens in PostgreSQL (faster)
+SELECT embedding <=> l2_normalize($1::halfvec) as cosine_distance
+```
+
+#### 4. **Optimized Indexing**
+```sql
+-- Dynamic index sizing based on dataset size
+CREATE INDEX songs_embedding_idx 
+ON songs USING ivfflat (embedding halfvec_cosine_ops) 
+WITH (lists = SQRT(num_songs));
+```
+
+#### 5. **Streaming Batch Processing**
+- Large datasets processed in 50-song chunks
+- Automatic garbage collection after each chunk
+- Memory usage stays constant regardless of dataset size
+
+### Memory Usage Comparison
+| Dataset Size | Before (vector) | After (halfvec) | Memory Saved |
+|--------------|----------------|-----------------|--------------|
+| 10K songs    | 15MB           | 7.5MB          | 50%          |
+| 50K songs    | 75MB           | 37.5MB         | 50%          |
+| 100K songs   | 150MB          | 75MB           | 50%          |
+
+## Model Selection & Tradeoffs
+
+### Current Model: `paraphrase-MiniLM-L3-v2`
+
+**What we know:**
+- **384-dimensional vectors**: As mentioned in the search process above
+- **Pre-trained sentence transformer**: Trained on text pairs to understand semantic similarity
+- **Memory optimized**: The README suggests this as a "smaller model" for memory-constrained deployments
+- **Configurable**: Can be changed via `SENTENCE_TRANSFORMER_MODEL` environment variable
+
+**General Tradeoffs in Sentence Transformer Models:**
+- **Larger models**: Typically more accurate but require more memory and compute
+- **Smaller models**: Faster and more memory-efficient but may be less accurate
+- **Specialized models**: Some are optimized for specific domains or languages
+
+**Alternative Models:**
+The app supports other sentence transformer models via environment variables. Common alternatives include models from the sentence-transformers library, but specific performance characteristics would need to be tested for your use case.
+
+**Considerations:**
+- Model choice depends on your deployment constraints (memory, speed requirements)
+- Different models may perform differently on music-related queries
+- Test with your specific queries to determine the best model for your needs
+
+**Important: Changing Models Requires Re-embedding**
+
+If you change the sentence transformer model, you **must** regenerate all embeddings in your database because:
+- Different models produce incompatible vector representations
+- A song embedded with `paraphrase-MiniLM-L3-v2` cannot be compared with a query embedded using `all-MiniLM-L6-v2`
+- Vector dimensions may also change between models
+
+**Steps to change models:**
+1. Update `SENTENCE_TRANSFORMER_MODEL` environment variable
+2. Clear existing embeddings from database
+3. Re-run the embedding process for all songs
+4. This may take significant time for large datasets
 
 ## Visual Architecture
 
@@ -79,7 +168,9 @@ Try the live demo with natural language queries like:
 
 ## Prerequisites
 - Python 3.9+
-- PostgreSQL 12+ with pgvector extension
+- PostgreSQL 15+ with pgvector 0.7.0+ extension
+  - **Required for halfvec support** (50% memory savings)
+  - **Older pgvector versions** will automatically fall back to standard vectors
 
 ## Local Development
 
@@ -115,6 +206,11 @@ export LOG_LEVEL="INFO"
 export FLASK_DEBUG="true"  # For development only
 export SECRET_KEY="<generate-random-secret>"
 export FLASK_ENV="production"  # For production deployment
+
+# pgvector Optimizations (NEW!)
+export USE_HALFVEC="true"           # Enable half-precision vectors (50% memory savings)
+export MAX_KAGGLE_SONGS="50000"     # Maximum songs to load from Kaggle dataset
+export EMBEDDING_BATCH_SIZE="50"    # Batch size for memory-efficient processing
 ```
 
 4. **Run Application**

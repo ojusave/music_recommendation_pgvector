@@ -45,10 +45,15 @@ class Config:
     DB_MAX_POOL_SIZE = int(os.getenv('DB_MAX_POOL_SIZE', '1'))  # Single connection for memory
     DB_COMMAND_TIMEOUT = int(os.getenv('DB_COMMAND_TIMEOUT', '90'))
     
-    # Application Configuration - Lower limits for memory
+    # Application Configuration - Optimized for Kaggle dataset and 512MB memory
     APP_NAME = os.getenv('APP_NAME', 'music_recommendations')
-    DEFAULT_RECOMMENDATION_LIMIT = int(os.getenv('DEFAULT_RECOMMENDATION_LIMIT', '3'))
-    MAX_RECOMMENDATION_LIMIT = int(os.getenv('MAX_RECOMMENDATION_LIMIT', '5'))
+    DEFAULT_RECOMMENDATION_LIMIT = int(os.getenv('DEFAULT_RECOMMENDATION_LIMIT', '5'))
+    MAX_RECOMMENDATION_LIMIT = int(os.getenv('MAX_RECOMMENDATION_LIMIT', '10'))
+    
+    # pgvector Optimizations for Render starter tier (0.5 CPU, 512MB memory)
+    USE_HALFVEC = os.getenv('USE_HALFVEC', 'true').lower() == 'true'  # 50% memory savings
+    MAX_KAGGLE_SONGS = int(os.getenv('MAX_KAGGLE_SONGS', '50000'))    # Realistic limit for 512MB
+    EMBEDDING_BATCH_SIZE = int(os.getenv('EMBEDDING_BATCH_SIZE', '50'))  # Small batches for memory
     
     # Server Configuration
     HOST = os.getenv('HOST', '0.0.0.0')

@@ -9,15 +9,17 @@ logger = logging.getLogger(__name__)
 class DatabaseSetup:
     """Main orchestrator coordinating SchemaManager, DataLoader, and EmbeddingProcessor."""
     
-    def __init__(self, model: SentenceTransformer, max_songs: int = 10000):
+    def __init__(self, model: SentenceTransformer, max_songs: int = 10000, use_halfvec: bool = True):
         self.model = model
         self.max_songs = max_songs
+        self.use_halfvec = use_halfvec
         
-        # Initialize specialized components
+        # Initialize specialized components with optimization settings
         model_dimensions = model.get_sentence_embedding_dimension()
-        self.schema_manager = SchemaManager(vector_dimensions=model_dimensions)
+        self.schema_manager = SchemaManager(vector_dimensions=model_dimensions, use_halfvec=use_halfvec)
         self.data_loader = DataLoader(max_songs=max_songs)
-        self.embedding_processor = EmbeddingProcessor(model=model)
+        # Note: EmbeddingProcessor will get updated vector type after schema creation
+        self.embedding_processor = EmbeddingProcessor(model=model, use_halfvec=use_halfvec)
         
         logger.info(f"Database setup initialized with {model_dimensions}D embeddings, max {max_songs} songs")
     
@@ -26,8 +28,12 @@ class DatabaseSetup:
         logger.info("Starting automatic database setup...")
         
         try:
-            # Create schema and indexes
+            # Create schema and indexes (this will detect pgvector capabilities)
             await self.schema_manager.create_database_schema(connection_pool)
+            
+            # Update embedding processor with detected vector type
+            self.embedding_processor.use_halfvec = self.schema_manager.use_halfvec
+            self.embedding_processor.vector_type = self.schema_manager.vector_type
             
             # Load music data (Kaggle if available, sample data otherwise)
             await self.load_music_data(connection_pool)
@@ -46,21 +52,26 @@ class DatabaseSetup:
         
         if kaggle_songs:
             logger.info(f"Using Kaggle dataset with {len(kaggle_songs)} songs")
-            await self._process_and_insert_songs(kaggle_songs)
+            # Use streaming insertion for large datasets to optimize memory
+            if len(kaggle_songs) > 1000:
+                logger.info("Using streaming insertion for large dataset")
+                await self.embedding_processor.insert_songs_streaming(kaggle_songs, connection_pool)
+            else:
+                await self._process_and_insert_songs(kaggle_songs, connection_pool)
         else:
             logger.info("Kaggle dataset not available, using sample data")
             sample_songs = get_legacy_sample_songs()
             await self.embedding_processor.insert_sample_songs(sample_songs, connection_pool)
     
-    async def _process_and_insert_songs(self, songs):
-        """Process songs and insert them with embeddings."""
+    async def _process_and_insert_songs(self, songs, connection_pool):
+        """Process songs and insert them with embeddings (for smaller datasets)."""
         descriptions = [song['description'] for song in songs]
         embeddings = self.embedding_processor.generate_embeddings(descriptions)
         
         stats = self.embedding_processor.get_embedding_stats(embeddings)
         logger.info(f"Embedding stats: {stats}")
         
-        await self.embedding_processor.insert_songs_with_embeddings(songs, embeddings)
+        await self.embedding_processor.insert_songs_with_embeddings(songs, embeddings, connection_pool)
     
     async def load_sample_data_only(self, connection_pool, use_enhanced: bool = True):
         """Load only sample data (useful for testing or when Kaggle unavailable)."""

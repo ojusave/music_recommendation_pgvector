@@ -8,8 +8,10 @@ logger = logging.getLogger(__name__)
 class SchemaManager:
     """Manages PostgreSQL schema creation with pgvector extension and vector indexes."""
     
-    def __init__(self, vector_dimensions: int = 768):
+    def __init__(self, vector_dimensions: int = 384, use_halfvec: bool = True):
         self.vector_dimensions = vector_dimensions
+        self.use_halfvec = use_halfvec
+        self.vector_type = "halfvec" if use_halfvec else "vector"
     
     async def create_database_schema(self, connection_pool):
         """Create songs table with pgvector extension and indexes."""
@@ -18,9 +20,20 @@ class SchemaManager:
         async with connection_pool.acquire() as conn:
             # Enable pgvector extension and drop existing table
             await conn.execute("CREATE EXTENSION IF NOT EXISTS vector;")
+            
+            # Check if halfvec is available (pgvector 0.7.0+)
+            if self.use_halfvec:
+                try:
+                    await conn.execute("SELECT '[1,2,3]'::halfvec(3);")
+                    logger.info("✅ halfvec support confirmed")
+                except Exception:
+                    logger.warning("⚠️  halfvec not supported, falling back to vector")
+                    self.use_halfvec = False
+                    self.vector_type = "vector"
+            
             await conn.execute("DROP TABLE IF EXISTS songs CASCADE;")
             
-            # Create songs table with vector column
+            # Create songs table with optimized vector column (halfvec saves 50% memory)
             create_table_query = f"""
             CREATE TABLE songs (
                 id SERIAL PRIMARY KEY,
@@ -28,7 +41,7 @@ class SchemaManager:
                 song_name TEXT NOT NULL,
                 band TEXT NOT NULL,
                 description TEXT NOT NULL,
-                embedding VECTOR({self.vector_dimensions}),
+                embedding {self.vector_type.upper()}({self.vector_dimensions}),
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
             """
@@ -39,11 +52,18 @@ class SchemaManager:
     
     async def _create_indexes(self, conn):
         """Create vector and metadata indexes for optimal performance."""
-        # IVFFlat index for vector similarity search
-        await conn.execute("""
+        # Calculate optimal list count: sqrt(expected_rows) for IVFFlat
+        # For 10K songs: sqrt(10000) = 100, for 50K: sqrt(50000) ≈ 224
+        optimal_lists = max(100, min(1000, int((10000 ** 0.5))))
+        
+        # Use appropriate operator class for halfvec vs vector
+        ops_class = f"{self.vector_type}_cosine_ops"
+        
+        # IVFFlat index optimized for memory-constrained environment
+        await conn.execute(f"""
             CREATE INDEX songs_embedding_idx 
-            ON songs USING ivfflat (embedding vector_cosine_ops) 
-            WITH (lists = 100);
+            ON songs USING ivfflat (embedding {ops_class}) 
+            WITH (lists = {optimal_lists});
         """)
         
         # Traditional indexes for metadata searching

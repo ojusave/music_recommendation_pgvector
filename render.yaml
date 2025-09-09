@@ -81,6 +81,14 @@ services:
       - key: DEFAULT_RECOMMENDATION_LIMIT
         value: "5"
       
+      # pgvector optimizations for Kaggle dataset
+      - key: USE_HALFVEC
+        value: "true"
+      - key: MAX_KAGGLE_SONGS
+        value: "50000"
+      - key: EMBEDDING_BATCH_SIZE
+        value: "50"
+      
       # Runtime configuration
       - key: DATABASE_URL
         fromDatabase:
@@ -102,4 +110,4 @@ databases:
     databaseName: music_recommendations
     user: music_user
     plan: free
-    postgresMajorVersion: 15
+    postgresMajorVersion: 16  # PostgreSQL 16 has pgvector 0.7.0+ with halfvec support

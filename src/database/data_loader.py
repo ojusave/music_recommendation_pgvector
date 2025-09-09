@@ -9,8 +9,9 @@ logger = logging.getLogger(__name__)
 class DataLoader:
     """Loads music data from Kaggle WITHOUT pandas to save memory."""
     
-    def __init__(self, max_songs: int = 10000):
-        self.max_songs = max_songs
+    def __init__(self, max_songs: int = None):
+        # Use optimized default from config if not specified
+        self.max_songs = max_songs or Config.MAX_KAGGLE_SONGS
     
     def load_kaggle_dataset(self) -> List[Dict]:
         """Load dataset without pandas to save memory."""

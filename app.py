@@ -26,8 +26,8 @@ app = Flask(__name__)
 app.config['SECRET_KEY'] = Config.SECRET_KEY
 #CORS(app)  # Enable CORS for all routes
 
-# Create the AI recommendation engine (this does the vector magic)
-recommendation_engine = MusicRecommendationEngine()
+# Create the AI recommendation engine with pgvector optimizations
+recommendation_engine = MusicRecommendationEngine(use_halfvec=Config.USE_HALFVEC)
 
 @app.route('/')
 def index():
@@ -49,6 +49,10 @@ def api_recommend():
     Output: {"success": true, "recommendations": [...], "query": "...", "count": 5}
     """
     logger.info("=== API RECOMMEND CALLED ===")
+    
+    # Ensure the recommendation engine is initialized
+    ensure_initialized()
+    
     try:
         # Get the JSON data from the request
         data = request.get_json()
@@ -101,6 +105,9 @@ def api_recommend():
 def api_status():
     """Status endpoint for monitoring database health and statistics."""
     try:
+        # Ensure the recommendation engine is initialized
+        ensure_initialized()
+        
         stats = recommendation_engine.get_database_stats_sync()
         return jsonify(stats)
     except Exception as e:
@@ -137,6 +144,14 @@ def initialize_app():
 # Initialize app when module is loaded (except for testing)
 if __name__ != '__main__' and 'test' not in sys.modules:
     initialize_app()
+
+# For Flask development server, ensure initialization happens synchronously
+def ensure_initialized():
+    """Ensure the recommendation engine is initialized before handling requests."""
+    if not hasattr(recommendation_engine, 'connection_pool') or recommendation_engine.connection_pool is None:
+        logger.info("Initializing recommendation engine...")
+        asyncio.run(recommendation_engine.initialize())
+        logger.info("Recommendation engine ready!")
 
 if __name__ == '__main__':
     """Main entry point for local development."""

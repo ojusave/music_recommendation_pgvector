@@ -10,8 +10,10 @@ logger = logging.getLogger(__name__)
 class EmbeddingProcessor:
     """Handles embedding generation, normalization, and batch database insertion."""
     
-    def __init__(self, model: SentenceTransformer):
+    def __init__(self, model: SentenceTransformer, use_halfvec: bool = True):
         self.model = model
+        self.use_halfvec = use_halfvec
+        self.vector_type = "halfvec" if use_halfvec else "vector"
     
     def generate_embeddings(self, descriptions: List[str]) -> np.ndarray:
         """Generate normalized embeddings for song descriptions."""
@@ -22,6 +24,11 @@ class EmbeddingProcessor:
         # Normalize embeddings to unit length for proper cosine similarity
         for i in range(len(embeddings)):
             embeddings[i] = embeddings[i] / np.linalg.norm(embeddings[i])
+        
+        # Convert to half-precision to save 50% memory if using halfvec
+        if self.use_halfvec:
+            embeddings = embeddings.astype(np.float16)
+            logger.info("Embeddings converted to half-precision (50% memory savings)")
         
         logger.info("Embeddings generated and normalized")
         return embeddings
@@ -40,12 +47,13 @@ class EmbeddingProcessor:
     
     async def _batch_insert(self, songs: List[Dict], embeddings: np.ndarray, conn):
         """Perform batch insertion of songs and embeddings."""
-        insert_query = """
+        insert_query = f"""
         INSERT INTO songs (song_id, song_name, band, description, embedding)
-        VALUES ($1, $2, $3, $4, $5::vector)
+        VALUES ($1, $2, $3, $4, $5::{self.vector_type})
         """
         
-        batch_size = 100
+        # Use optimized batch size for memory-constrained environment
+        batch_size = Config.EMBEDDING_BATCH_SIZE
         total_batches = (len(songs) - 1) // batch_size + 1
         
         for i in range(0, len(songs), batch_size):
@@ -72,9 +80,9 @@ class EmbeddingProcessor:
         embeddings = self.generate_embeddings(descriptions)
         
         async with connection_pool.acquire() as conn:
-            insert_query = """
+            insert_query = f"""
             INSERT INTO songs (song_id, song_name, band, description, embedding)
-            VALUES ($1, $2, $3, $4, $5::vector)
+            VALUES ($1, $2, $3, $4, $5::{self.vector_type})
             """
             
             for i, song in enumerate(songs):
@@ -85,6 +93,49 @@ class EmbeddingProcessor:
                 )
         
         logger.info(f"Loaded {len(songs)} sample songs")
+    
+    async def insert_songs_streaming(self, songs: List[Dict], connection_pool):
+        """
+        Insert songs with streaming batch processing for large datasets.
+        Optimized for memory-constrained environments (512MB).
+        """
+        logger.info(f"Starting streaming insertion of {len(songs)} songs...")
+        
+        chunk_size = Config.EMBEDDING_BATCH_SIZE
+        total_chunks = (len(songs) - 1) // chunk_size + 1
+        
+        async with connection_pool.acquire() as conn:
+            insert_query = f"""
+            INSERT INTO songs (song_id, song_name, band, description, embedding)
+            VALUES ($1, $2, $3, $4, $5::{self.vector_type})
+            """
+            
+            for i in range(0, len(songs), chunk_size):
+                chunk = songs[i:i+chunk_size]
+                chunk_num = i // chunk_size + 1
+                
+                logger.info(f"Processing chunk {chunk_num}/{total_chunks} ({len(chunk)} songs)")
+                
+                # Generate embeddings for this chunk only
+                descriptions = [song['description'] for song in chunk]
+                embeddings = self.generate_embeddings(descriptions)
+                
+                # Insert chunk
+                for j, song in enumerate(chunk):
+                    embedding_str = '[' + ','.join(map(str, embeddings[j].tolist())) + ']'
+                    await conn.execute(
+                        insert_query, song['song_id'], song['song_name'], 
+                        song['band'], song['description'], embedding_str
+                    )
+                
+                # Force garbage collection after each chunk
+                del embeddings, descriptions
+                import gc
+                gc.collect()
+                
+                logger.info(f"Completed chunk {chunk_num}/{total_chunks}")
+        
+        logger.info(f"Successfully streamed {len(songs)} songs to database")
     
     def get_embedding_stats(self, embeddings: np.ndarray) -> Dict:
         """Get statistics about the generated embeddings."""
