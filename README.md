@@ -17,64 +17,13 @@ A modern web application that demonstrates semantic music search using **pgvecto
 - **Music Service Integration**: Direct links to YouTube and Spotify
 - **Production Ready**: Configured for easy deployment
 
-## Architecture
+## How It Works
 
-```
-┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
-│   Frontend      │    │   Flask API     │    │  PostgreSQL     │
-│                 │    │                 │    │  + pgvector     │
-│ • HTML/CSS/JS   │◄──►│ • Async Routes  │◄──►│ • Vector Search │
-│ • Search UI     │    │ • ML Pipeline   │    │ • Cosine Sim    │
-│ • Results       │    │ • Error Handle  │    │ • Indexing      │
-└─────────────────┘    └─────────────────┘    └─────────────────┘
-```
+**Simple concept:** Type "sad piano music" → Get relevant song recommendations
 
-### Key Components
+**Technology stack:** Flask + PostgreSQL + pgvector + AI embeddings
 
-1. **Frontend** (`templates/index.html`, `static/`):
-   - Clean, modern interface for music discovery
-   - Real-time search with loading states
-   - Responsive design with example queries
-
-2. **Backend** (`app.py`, `src/`):
-   - Flask web server with async database operations
-   - Modular architecture with separated concerns
-   - Sentence transformer integration for embeddings
-   - Vector similarity search with pgvector
-
-3. **Database** (PostgreSQL + pgvector):
-   - 768-dimensional embeddings using all-mpnet-base-v2 model
-   - Enhanced descriptions for better artist and song matching
-   - Optimized vector indexes for fast similarity search
-   - Kaggle music dataset with rich metadata
-
-## Code Architecture
-
-### Modular Structure
-
-The application uses a clean, modular architecture with separation of concerns:
-
-```
-src/
-├── config.py                 # Configuration management
-├── recommendation_engine.py  # Core semantic search logic
-├── database_setup.py        # Database orchestrator
-└── database/                # Database package
-    ├── schema_manager.py    # Schema creation & management
-    ├── data_loader.py       # External data loading
-    ├── embedding_processor.py # Embedding operations
-    └── sample_data.py       # Sample data definitions
-```
-
-### Component Responsibilities
-
-- **`config.py`**: Environment variables and application settings
-- **`recommendation_engine.py`**: Semantic similarity search and recommendations
-- **`database_setup.py`**: Orchestrates database initialization using specialized modules
-- **`database/schema_manager.py`**: Creates tables, indexes, and manages schema
-- **`database/data_loader.py`**: Loads and processes Kaggle datasets
-- **`database/embedding_processor.py`**: Generates embeddings and handles batch insertion
-- **`database/sample_data.py`**: Provides curated sample music data
+**For detailed architecture, code explanations, and pgvector concepts, see [guide.md](guide.md#project-architecture-overview).**
 
 
 ## Quick Deploy
@@ -133,77 +82,23 @@ src/
 
 7. **Open in browser**: http://localhost:5000
 
-## Development Workflow
+## Development
 
-### Working with the Modular Structure
+**Quick start:** Follow setup steps above, then modify code as needed.
 
-The codebase is organized into focused modules for better development experience:
+**For detailed development workflows, component testing, and customization guides, see [guide.md](guide.md#code-walkthrough).**
 
+## Search Examples
+
+**Try these searches:**
+- "ABBA" → Find all ABBA songs
+- "sad piano music" → Find melancholic piano pieces  
+- "upbeat workout songs" → Find energetic music
+- "Dancing Queen" → Find the specific song
+
+**API Usage:**
 ```bash
-# Import the main orchestrator
-from src import DatabaseSetup
-
-# Import specific database components
-from src.database import SchemaManager, DataLoader, EmbeddingProcessor
-
-# Import configuration
-from src import Config
-```
-
-### Common Development Tasks
-
-1. **Adding new data sources**: Extend `DataLoader` class
-2. **Modifying database schema**: Update `SchemaManager` class  
-3. **Changing embedding logic**: Modify `EmbeddingProcessor` class
-4. **Adding sample data**: Update `sample_data.py`
-5. **Configuration changes**: Edit `config.py`
-
-### Testing Individual Components
-
-```python
-# Test schema management
-schema_manager = SchemaManager(vector_dimensions=768)
-await schema_manager.create_database_schema(connection_pool)
-
-# Test data loading
-data_loader = DataLoader(max_songs=1000)
-songs = data_loader.load_kaggle_dataset()
-
-# Test embedding processing
-embedding_processor = EmbeddingProcessor(model)
-embeddings = embedding_processor.generate_embeddings(descriptions)
-```
-
-## Search Capabilities
-
-### Enhanced Description Generation
-
-The system creates rich, semantic descriptions to improve search accuracy:
-
-```python
-# Example enhanced description format:
-"Money, Money, Money (ABBA cover) by ReinXeed - artist: ReinXeed - song: Money, Money, Money (ABBA cover)"
-```
-
-This approach ensures:
-- **Artist searches** like "ReinXeed" find all songs by that artist
-- **Song searches** like "Money Money Money" find the specific song
-- **Genre/mood searches** like "sad songs" find emotionally relevant music
-
-### Search Examples
-
-```bash
-# Artist-based search
-curl -X POST /api/recommend -d '{"query": "ABBA", "limit": 5}'
-
-# Song-based search  
-curl -X POST /api/recommend -d '{"query": "Dancing Queen", "limit": 5}'
-
-# Mood-based search
 curl -X POST /api/recommend -d '{"query": "sad ballads", "limit": 5}'
-
-# Genre-based search
-curl -X POST /api/recommend -d '{"query": "rock music", "limit": 5}'
 ```
 
 ## Understanding the Code
@@ -217,52 +112,15 @@ This project demonstrates production-ready pgvector implementation with:
 
 **For detailed code explanations, SQL queries, and implementation patterns, see [guide.md](guide.md#code-walkthrough).**
 
-## Customization Guide
+## Customization
 
-### Adding New Data Sources
+**Want to customize this app?**
 
-1. **Create a new data loader in `src/database/data_loader.py`**:
-   ```python
-   def load_custom_dataset(self):
-       # Your implementation here
-       return songs_list
-   ```
+- **Change AI model**: Update `SENTENCE_TRANSFORMER_MODEL` in config
+- **Add data sources**: Extend the `DataLoader` class  
+- **Modify UI**: Edit files in `templates/` and `static/`
 
-2. **Enhanced descriptions are automatically generated**:
-   ```python
-   # The DataLoader creates enhanced descriptions automatically:
-   description = f"{song_name} by {artist_name} - artist: {artist_name} - song: {song_name}"
-   ```
-
-3. **Embeddings are handled by EmbeddingProcessor**:
-   ```python
-   # EmbeddingProcessor automatically handles:
-   embeddings = self.embedding_processor.generate_embeddings(descriptions)
-   ```
-
-4. **Schema updates via SchemaManager**:
-   ```python
-   # Update vector dimensions in SchemaManager
-   schema_manager = SchemaManager(vector_dimensions=new_dimension)
-   ```
-
-### Changing the ML Model
-
-```python
-# Current model: all-mpnet-base-v2 (768 dimensions)
-# To change model, update src/config.py:
-SENTENCE_TRANSFORMER_MODEL = 'your-model-name'
-
-# Important: Update vector dimensions in database schema
-# Current schema uses VECTOR(768) for all-mpnet-base-v2
-# Different models may require different dimensions
-```
-
-### UI Customization
-
-- **Styling**: Edit `static/css/style.css`
-- **Functionality**: Modify `static/js/app.js`
-- **Layout**: Update `templates/index.html`
+**For detailed customization guides and best practices, see [guide.md](guide.md#best-practices).**
 
 ## Production Considerations
 
