@@ -13,11 +13,17 @@ RUN apt-get update && apt-get install -y \
 # Copy requirements first for better caching
 COPY requirements.txt .
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install dependencies in stages to handle PyTorch CPU-only properly
+RUN pip install --no-cache-dir Flask==2.3.3 Flask-CORS==4.0.0 gunicorn==21.2.0
+RUN pip install --no-cache-dir asyncpg==0.29.0 psycopg2-binary==2.9.7
+RUN pip install --no-cache-dir numpy==1.24.3 pandas==2.0.3
+RUN pip install --no-cache-dir kaggle==1.5.16 python-dotenv==1.0.0
 
-# Pre-download the model during build (not runtime)
-RUN python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('sentence-transformers/all-MiniLM-L12-v1')"
+# Install PyTorch CPU-only version and sentence-transformers with compatible versions
+RUN pip install --no-cache-dir torch==2.1.0 --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir sentence-transformers==2.2.2
+
+# Skip model pre-download to avoid version conflicts - use lazy loading instead
 
 # Copy application code
 COPY . .

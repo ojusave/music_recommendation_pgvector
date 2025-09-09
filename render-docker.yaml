@@ -5,7 +5,7 @@ services:
     plan: free
     # Use pre-built Docker image instead of building from source
     image:
-      url: docker.io/yourusername/music-recommendations:latest
+      url: docker.io/delkajuer/music-recommendations:latest
     envVars:
       - key: DATABASE_URL
         fromDatabase:
