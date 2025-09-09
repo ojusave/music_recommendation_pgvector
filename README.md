@@ -8,22 +8,19 @@ A modern web application that demonstrates semantic music search using **pgvecto
 
 [**Try the live app**](https://music-recommendations-hz3i.onrender.com)
 
-## Features
+## What This App Does
 
-- **Natural Language Search**: "upbeat rock music for working out" or "ABBA songs" leads to relevant recommendations
-- **Artist-Based Search**: Search by artist name (e.g., "ReinXeed") returns all songs by that artist
-- **Semantic Similarity**: Uses all-mpnet-base-v2 sentence transformers and 768-dimensional vector embeddings
-- **Real-time Results**: Fast similarity search with pgvector's optimized indexing
-- **Music Service Integration**: Direct links to YouTube and Spotify
-- **Production Ready**: Configured for easy deployment
+Type **"sad piano music"** → Get intelligent song recommendations
 
-## How It Works
+**Key features:**
+- Natural language search ("upbeat workout music")
+- Artist and song search ("ABBA", "Dancing Queen")  
+- Direct links to YouTube and Spotify
+- Production-ready deployment
 
-**Simple concept:** Type "sad piano music" → Get relevant song recommendations
+**How it works:** AI converts your search into numbers, PostgreSQL finds similar songs using pgvector.
 
-**Technology stack:** Flask + PostgreSQL + pgvector + AI embeddings
-
-**For detailed architecture, code explanations, and pgvector concepts, see [guide.md](guide.md#project-architecture-overview).**
+**Want to understand the technology?** See [guide.md](guide.md) for comprehensive pgvector tutorials and implementation details.
 
 
 ## Quick Deploy
@@ -41,52 +38,25 @@ A modern web application that demonstrates semantic music search using **pgvecto
 
 ## Local Development
 
-### Prerequisites
-- Python 3.11+
-- PostgreSQL with pgvector extension
-- Git
+**Prerequisites:** Python 3.11+, PostgreSQL with pgvector extension
 
-### Setup
+**Setup:**
+```bash
+# 1. Clone and install
+git clone <repo-url>
+cd music-recommendation-app
+pip install -r requirements.txt
 
-1. **Clone the repository**:
-   ```bash
-   git clone <your-repo-url>
-   cd music-recommendation-app
-   ```
+# 2. Setup database
+createdb music_recommendations
+psql music_recommendations -c "CREATE EXTENSION vector;"
 
-2. **Install dependencies**:
-   ```bash
-   pip install -r requirements.txt
-   ```
+# 3. Configure and run
+export DATABASE_URL="postgresql://user:pass@localhost/music_recommendations"
+python app.py
+```
 
-3. **Set up PostgreSQL with pgvector**:
-   ```sql
-   CREATE DATABASE music_recommendations;
-   CREATE EXTENSION vector;
-   ```
-
-4. **Configure environment**:
-   ```bash
-   export DATABASE_URL="postgresql://user:pass@localhost/music_recommendations"
-   ```
-
-5. **Load sample data**:
-   ```bash
-   # Data is loaded automatically - no manual step needed
-   ```
-
-6. **Run the application**:
-   ```bash
-   python app.py
-   ```
-
-7. **Open in browser**: http://localhost:5000
-
-## Development
-
-**Quick start:** Follow setup steps above, then modify code as needed.
-
-**For detailed development workflows, component testing, and customization guides, see [guide.md](guide.md#code-walkthrough).**
+**For detailed setup, environment configuration, and development workflows, see [guide.md](guide.md#database-setup).**
 
 ## Search Examples
 
@@ -101,39 +71,17 @@ A modern web application that demonstrates semantic music search using **pgvecto
 curl -X POST /api/recommend -d '{"query": "sad ballads", "limit": 5}'
 ```
 
-## Understanding the Code
+## Code Overview
 
-This project demonstrates production-ready pgvector implementation with:
+This is a production-ready pgvector example with Flask, PostgreSQL, and AI embeddings.
 
-- **Semantic Search**: Convert text queries to 768D embeddings using sentence-transformers
-- **Vector Storage**: Store embeddings in PostgreSQL with pgvector extension
-- **Similarity Search**: Use cosine distance for finding similar songs
-- **Production Patterns**: Async operations, connection pooling, error handling
+**For detailed code explanations, architecture, and implementation patterns, see [guide.md](guide.md#understanding-the-codebase).**
 
-**For detailed code explanations, SQL queries, and implementation patterns, see [guide.md](guide.md#code-walkthrough).**
+## Customization & Production
 
-## Customization
+**This app is production-ready** with built-in connection pooling, error handling, and health checks.
 
-**Want to customize this app?**
-
-- **Change AI model**: Update `SENTENCE_TRANSFORMER_MODEL` in config
-- **Add data sources**: Extend the `DataLoader` class  
-- **Modify UI**: Edit files in `templates/` and `static/`
-
-**For detailed customization guides and best practices, see [guide.md](guide.md#best-practices).**
-
-## Production Considerations
-
-This app is production-ready with connection pooling, error handling, and health checks built-in.
-
-**For comprehensive production guidance including:**
-- Environment configuration and .env setup
-- Database tuning and indexing strategies  
-- Performance optimization patterns
-- Security best practices
-- Monitoring and troubleshooting
-
-**See [guide.md](guide.md#production-considerations) for detailed production deployment patterns.**
+**For customization, production deployment, performance tuning, and best practices, see [guide.md](guide.md#production-deployment).**
 
 ## Learning Resources
 
@@ -149,19 +97,9 @@ This app is production-ready with connection pooling, error handling, and health
 - [Render Docs](https://render.com/docs)
 - [PostgreSQL on Render](https://render.com/docs/databases)
 
-## Troubleshooting
+## Need Help?
 
-**Common Issues:**
-- **Port 5000 in use**: Change port with `export PORT=5001`
-- **Database connection**: Verify `DATABASE_URL` environment variable  
-- **Model loading**: First run downloads model (may be slow)
-- **Import errors**: Use `from src.database import SchemaManager`
+**Quick fixes:** Port issues → change PORT env var | Database issues → check DATABASE_URL | Slow startup → model downloading
 
-**For comprehensive troubleshooting including:**
-- Vector dimension mismatch errors
-- pgvector extension issues
-- Render deployment problems
-- Database schema debugging
-
-**See [guide.md](guide.md#common-patterns-and-pitfalls) for detailed troubleshooting guides.**
+**For comprehensive troubleshooting, deployment issues, and debugging guides, see [guide.md](guide.md#troubleshooting).**
 

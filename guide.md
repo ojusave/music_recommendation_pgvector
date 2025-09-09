@@ -10,17 +10,19 @@ Think of this as your friendly introduction to vector databases. We'll start wit
 
 ## Table of Contents
 
+**Part 1: Understanding pgvector**
 1. [What is pgvector?](#what-is-pgvector)
 2. [Core Concepts](#core-concepts)
 3. [Understanding the Codebase](#understanding-the-codebase)
-4. [Project Architecture Overview](#project-architecture-overview)
-5. [Database Schema and Setup](#database-schema-and-setup)
-6. [Embedding Generation and Processing](#embedding-generation-and-processing)
-7. [Vector Similarity Search](#vector-similarity-search)
-8. [Production Considerations](#production-considerations)
-9. [Code Walkthrough](#code-walkthrough)
-10. [Best Practices](#best-practices)
-11. [Common Patterns and Pitfalls](#common-patterns-and-pitfalls)
+
+**Part 2: Building with pgvector**
+4. [Database Setup](#database-setup)
+5. [Embedding and Search](#embedding-and-search)
+6. [Production Deployment](#production-deployment)
+
+**Part 3: Reference**
+7. [Best Practices](#best-practices)
+8. [Troubleshooting](#troubleshooting)
 
 ---
 
@@ -220,62 +222,7 @@ normalized_vector = original_vector / np.linalg.norm(original_vector)
 
 ---
 
-## Project Architecture Overview
-
-Now let's see how all these files work together to create our music recommendation system. Think of it like a restaurant kitchen - everyone has a specific job, but they all work together to serve great food (or in our case, great music recommendations).
-
-### The File Structure (Your Project Layout)
-
-```
-render-test/
-├── app.py                    # The waiter (handles web requests)
-├── src/
-│   ├── config.py            # The recipe book (all settings)
-│   ├── recommendation_engine.py  # The head chef (main logic)
-│   ├── database_setup.py    # The kitchen manager (coordinates everything)
-│   └── database/
-│       ├── schema_manager.py     # The architect (builds database structure)
-│       ├── embedding_processor.py # The translator (text → numbers)
-│       ├── data_loader.py        # The supplier (gets ingredients/data)
-│       └── sample_data.py        # The pantry (backup ingredients)
-├── templates/
-│   └── index.html           # The dining room (what customers see)
-└── requirements.txt         # The shopping list (what we need to install)
-```
-
-### How It All Works Together (The Data Journey)
-
-Let's follow what happens when someone searches for "upbeat rock music":
-
-**Step 1: The Request Arrives** 
-User types "upbeat rock music" and clicks search. The web page sends this to `app.py`.
-
-**Step 2: The Brain Takes Over**
-`app.py` hands the query to `recommendation_engine.py` (our brain), which says "I need to understand what this means."
-
-**Step 3: Text Becomes Numbers**
-The brain uses an AI model to convert "upbeat rock music" into 768 numbers that represent the meaning. This is like translating English into a language the database understands.
-
-**Step 4: Database Search**
-PostgreSQL (with pgvector) searches through thousands of song vectors to find the ones most similar to our query numbers.
-
-**Step 5: Results Come Back**
-The database returns the most similar songs, ranked by how closely they match. The brain formats these nicely and sends them back to the web page.
-
-**Step 6: User Sees Results**
-The web page displays the recommendations with similarity scores, YouTube links, and all the details.
-
-### Why This Architecture Works
-
-**Separation of Concerns:** Each file has one job and does it well. If you need to change how data is loaded, you only touch `data_loader.py`.
-
-**Scalability:** Want to handle more users? Add more web servers. Need faster search? Optimize the database. Each piece can be improved independently.
-
-**Maintainability:** New developer joins your team? They can understand one piece at a time instead of trying to grasp everything at once.
-
----
-
-## Database Schema and Setup
+## Database Setup
 
 ### 1. Enable pgvector Extension
 
@@ -350,7 +297,7 @@ class SchemaManager:
 
 ---
 
-## Embedding Generation and Processing
+## Embedding and Search
 
 ### 1. Model Selection
 
@@ -439,9 +386,7 @@ async def _batch_insert(self, songs: List[Dict], embeddings: np.ndarray, conn):
 - Use `::vector` cast to ensure proper type conversion
 - Process in batches to avoid memory issues with large datasets
 
----
-
-## Vector Similarity Search
+### Vector Similarity Search
 
 ### 1. Query Processing
 
@@ -505,7 +450,7 @@ ROUND(CAST(GREATEST(0, (1.0 - (embedding <-> $1::vector) / 2.0) * 100.0) AS nume
 
 ---
 
-## Production Considerations
+## Production Deployment
 
 ### 1. Environment Configuration
 
@@ -651,110 +596,6 @@ async def get_table_stats(self, connection_pool) -> dict:
         }
 ```
 
----
-
-## Code Walkthrough
-
-### 1. Application Entry Point (`app.py`)
-
-```python
-# Flask app with pgvector-powered recommendations
-app = Flask(__name__)
-recommendation_engine = MusicRecommendationEngine()
-
-@app.route('/api/recommend', methods=['POST'])
-def api_recommend():
-    """API endpoint for semantic music recommendations."""
-    data = request.get_json()
-    query = data['query'].strip()
-    limit = data.get('limit', Config.DEFAULT_RECOMMENDATION_LIMIT)
-    
-    # Core semantic search using pgvector
-    recommendations = asyncio.run(
-        recommendation_engine.get_recommendations(query, limit)
-    )
-    
-    return jsonify({
-        'success': True,
-        'recommendations': recommendations,
-        'query': query,
-        'count': len(recommendations)
-    })
-```
-
-### 2. Recommendation Engine (`recommendation_engine.py`)
-
-```python
-class MusicRecommendationEngine:
-    """Core recommendation engine using pgvector for semantic similarity search."""
-    
-    async def initialize(self):
-        """Initialize model and database connection."""
-        # Load sentence transformer model
-        self.model = SentenceTransformer('all-mpnet-base-v2')
-        
-        # Create connection pool
-        self.connection_pool = await asyncpg.create_pool(Config.DATABASE_URL)
-        
-        # Auto-setup database if needed
-        await self._verify_and_setup_database()
-    
-    async def get_recommendations(self, query: str, limit: int = 5):
-        """Main recommendation logic using pgvector similarity search."""
-        # 1. Convert query to embedding
-        query_embedding = self.model.encode(query)
-        query_embedding = query_embedding / np.linalg.norm(query_embedding)
-        
-        # 2. Format for PostgreSQL
-        query_vector_str = '[' + ','.join(map(str, query_embedding.tolist())) + ']'
-        
-        # 3. Semantic similarity search
-        search_query = """
-        SELECT song_name, band, description,
-               (embedding <-> $1::vector) as distance,
-               ROUND((1.0 - (embedding <-> $1::vector) / 2.0) * 100.0, 1) as similarity_score
-        FROM songs 
-        ORDER BY embedding <-> $1::vector ASC
-        LIMIT $2
-        """
-        
-        # 4. Execute and return results
-        results = await conn.fetch(search_query, query_vector_str, limit)
-        return self._format_results(results)
-```
-
-### 3. Database Setup (`database_setup.py`)
-
-```python
-class DatabaseSetup:
-    """Orchestrates schema creation, data loading, and embedding generation."""
-    
-    def __init__(self, model: SentenceTransformer):
-        self.model = model
-        model_dimensions = model.get_sentence_embedding_dimension()
-        
-        # Initialize specialized components
-        self.schema_manager = SchemaManager(vector_dimensions=model_dimensions)
-        self.data_loader = DataLoader()
-        self.embedding_processor = EmbeddingProcessor(model=model)
-    
-    async def setup_database(self, connection_pool):
-        """Complete database setup workflow."""
-        # 1. Create schema with pgvector
-        await self.schema_manager.create_database_schema(connection_pool)
-        
-        # 2. Load and process data
-        songs = self.data_loader.load_kaggle_dataset()
-        descriptions = [song['description'] for song in songs]
-        
-        # 3. Generate embeddings
-        embeddings = self.embedding_processor.generate_embeddings(descriptions)
-        
-        # 4. Insert into database
-        await self.embedding_processor.insert_songs_with_embeddings(
-            songs, embeddings, connection_pool
-        )
-```
 
 ---
 
@@ -815,7 +656,7 @@ WHERE embedding <-> $1 < 0.5;
 
 ---
 
-## Common Patterns and Pitfalls
+## Troubleshooting
 
 ### Do's
 
@@ -881,21 +722,7 @@ async with self.connection_pool.acquire() as conn:
     pass  # Connection automatically released
 ```
 
----
-
-## Conclusion
-
-This guide demonstrated pgvector fundamentals through a production-ready music recommendation system. Key takeaways:
-
-1. **pgvector integrates seamlessly** with PostgreSQL for vector similarity search
-2. **Proper schema design** with vector columns and indexes is crucial
-3. **Embedding quality** directly impacts search relevance
-4. **Production considerations** like connection pooling and error handling are essential
-5. **SQL-based vector operations** make pgvector accessible to existing PostgreSQL workflows
-
-The music recommendation system showcases how pgvector enables sophisticated semantic search applications while leveraging PostgreSQL's robust feature set. This pattern can be adapted for many use cases: document search, image similarity, recommendation engines, and more.
-
-## Deployment on Render
+### Deployment on Render
 
 This project is optimized for deployment on Render, a modern cloud platform that makes deploying pgvector applications straightforward.
 
@@ -1053,88 +880,31 @@ def health_check():
 - Health check endpoint for uptime monitoring
 - Database connection monitoring via `/api/status`
 
-### 6. Local Development vs Production
 
-**Local Development:**
-```bash
-# .env file for local development
-DATABASE_URL=postgresql://localhost/music_recommendations
-FLASK_DEBUG=True
-HOST=127.0.0.1
-PORT=5000
-```
+### Render Deployment Issues
 
-**Render Production:**
-```bash
-# Environment variables set in Render dashboard
-DATABASE_URL=postgresql://render-generated-url
-FLASK_ENV=production
-# Other variables set via Render UI
-```
+**Common problems:** Build failures → check requirements.txt | Database connection → verify DATABASE_URL | Memory issues → upgrade Render plan | pgvector missing → contact Render support
 
-### 7. Troubleshooting Render Deployment
+**For detailed troubleshooting, see the main Troubleshooting section above.**
 
-**Common Issues:**
+---
 
-1. **Build Failures:**
-   ```bash
-   # Check requirements.txt for version conflicts
-   # Ensure Python 3.11+ compatibility
-   ```
+## Conclusion
 
-2. **Database Connection:**
-   ```bash
-   # Verify DATABASE_URL is set correctly
-   # Check pgvector extension is enabled
-   ```
+Congratulations! You now understand pgvector fundamentals and how to build production-ready semantic search applications.
 
-3. **Memory Issues:**
-   ```bash
-   # sentence-transformers models require sufficient memory
-   # Consider upgrading Render plan for larger models
-   ```
+**Key takeaways:**
+- pgvector brings AI-powered search to PostgreSQL
+- Vectors capture meaning, not just keywords
+- Proper indexing and normalization are crucial
+- Production deployment requires careful configuration
 
-4. **First Deployment Timeout:**
-   ```bash
-   # Initial model download may take time
-   # Subsequent deployments will be faster
-   ```
+**Next steps:**
+- Experiment with different embedding models
+- Try building your own semantic search app
+- Explore hybrid search (vectors + traditional SQL)
+- Join the pgvector community for updates
 
-5. **pgvector Extension Issues:**
-   ```sql
-   -- Check if pgvector is installed
-   SELECT * FROM pg_available_extensions WHERE name = 'vector';
-   
-   -- If not available, contact Render support
-   -- Most Render PostgreSQL instances include pgvector by default
-   
-   -- Verify extension is enabled
-   SELECT extname FROM pg_extension WHERE extname = 'vector';
-   
-   -- Test basic vector operations
-   SELECT '[1,2,3]'::vector <-> '[1,2,4]'::vector AS distance;
-   ```
-
-6. **Vector Dimension Errors:**
-   ```python
-   # Error: "vector has wrong dimensions"
-   # Solution: Ensure consistent dimensions across your application
-   
-   # Check your model's dimensions
-   from sentence_transformers import SentenceTransformer
-   model = SentenceTransformer('all-mpnet-base-v2')
-   print(model.get_sentence_embedding_dimension())  # Should be 768
-   
-   # Verify database schema matches
-   # VECTOR(768) in schema should match model output
-   ```
-
-### Next Steps
-
-- Experiment with different embedding models for your domain
-- Tune index parameters for your dataset size
-- Add hybrid search combining vector and traditional SQL queries
-- Implement real-time embedding updates for dynamic content
-- Explore advanced pgvector features like filtered vector search
+**Remember:** Start simple, measure performance, and iterate. pgvector makes powerful AI search accessible to everyone!
 
 
