@@ -3,7 +3,7 @@ services:
     name: music-recommendations
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt && python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
+    buildCommand: pip install -r requirements.txt && python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('paraphrase-MiniLM-L3-v2')"
     startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --workers 1 --timeout 30 --max-requests 50 --max-requests-jitter 5 --preload --worker-tmp-dir /dev/shm
     envVars:
       - key: PYTHON_VERSION
@@ -19,7 +19,7 @@ services:
       - key: SECRET_KEY
         generateValue: true
       - key: SENTENCE_TRANSFORMER_MODEL
-        value: all-MiniLM-L6-v2
+        value: paraphrase-MiniLM-L3-v2
       - key: DEFAULT_RECOMMENDATION_LIMIT
         value: "5"
       - key: MAX_RECOMMENDATION_LIMIT

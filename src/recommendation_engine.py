@@ -20,10 +20,13 @@ class MusicRecommendationEngine:
         """Initialize the recommendation engine with model and database connection."""
         logger.info("Initializing Music Recommendation Engine...")
         
-        # Load sentence transformer model
+        # Load sentence transformer model (PyTorch only for memory efficiency)
         model_name = Config.SENTENCE_TRANSFORMER_MODEL
         logger.info(f"Loading model: {model_name}...")
-        self.model = SentenceTransformer(model_name)
+        import os
+        os.environ['SENTENCE_TRANSFORMERS_HOME'] = '/tmp/sentence_transformers'
+        # Force PyTorch backend only to save memory
+        self.model = SentenceTransformer(model_name, device='cpu', cache_folder='/tmp/sentence_transformers')
         logger.info(f"Model loaded: {self.model.get_sentence_embedding_dimension()} dimensions")
         
         # Initialize database setup and connection pool
