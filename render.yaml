@@ -2,114 +2,135 @@ services:
   - type: web
     name: music-recommendations
     env: python
-    plan: free
-    # Optimize build process to prevent timeouts
-    buildCommand: |
-      echo "=== Starting Build Process ===" &&
-      pip install --upgrade pip &&
-      echo "=== Installing Core Dependencies ===" &&
-      pip install --no-cache-dir Flask==3.0.0 Flask-CORS==4.0.0 gunicorn==21.2.0 &&
-      echo "=== Installing Database Dependencies ===" &&
-      pip install --no-cache-dir asyncpg>=0.30.0 psycopg2-binary>=2.9.7 &&
-      echo "=== Installing Data Processing ===" &&
-      pip install --no-cache-dir numpy>=1.26.0 pandas>=2.1.0 &&
-      echo "=== Installing ML Dependencies ===" &&
-      pip install --no-cache-dir torch>=2.1.2 --index-url https://download.pytorch.org/whl/cpu &&
-      pip install --no-cache-dir sentence-transformers>=2.3.0 &&
-      echo "=== Installing Utilities ===" &&
-      pip install --no-cache-dir kaggle>=1.6.0 python-dotenv>=1.0.0 &&
-      echo "=== Pre-downloading Model (to avoid timeout on first request) ===" &&
-      python -c "
-      import os; 
-      os.makedirs('/tmp/sentence_transformers', exist_ok=True);
-      os.environ['SENTENCE_TRANSFORMERS_HOME'] = '/tmp/sentence_transformers';
-      from sentence_transformers import SentenceTransformer; 
-      print('Downloading model...'); 
-      model = SentenceTransformer('sentence-transformers/all-MiniLM-L12-v1', cache_folder='/tmp/sentence_transformers'); 
-      print(f'Model loaded with {model.get_sentence_embedding_dimension()} dimensions')
-      " &&
-      echo "=== Verifying Installation ===" &&
-      python -c "
-      import psycopg2; print('✓ psycopg2 imported');
-      import asyncpg; print('✓ asyncpg imported');
-      import torch; print('✓ torch imported');
-      from sentence_transformers import SentenceTransformer; print('✓ sentence-transformers imported');
-      print('=== Build Complete ===')
-      "
+    plan: starter  # 512MB - we'll make this work!
     
-    # Optimized start command with proper timeout and preloading
+    # Ultra-aggressive build for 512MB
+    buildCommand: |
+      echo "=== ULTRA-AGGRESSIVE 512MB BUILD ===" &&
+      echo "Available memory at start:" && free -h 2>/dev/null || echo "N/A" &&
+      
+      # Upgrade pip efficiently
+      pip install --upgrade pip --no-cache-dir &&
+      
+      echo "=== Installing MINIMAL dependencies ===" &&
+      # Install only essential packages, no pandas!
+      pip install --no-cache-dir Flask==3.0.0 gunicorn==21.2.0 &&
+      pip install --no-cache-dir asyncpg>=0.30.0 psycopg2-binary>=2.9.7 &&
+      pip install --no-cache-dir numpy>=1.26.0 python-dotenv>=1.0.0 &&
+      
+      echo "=== Installing PyTorch CPU-ONLY (minimal) ===" &&
+      pip install --no-cache-dir torch>=2.1.2 --index-url https://download.pytorch.org/whl/cpu &&
+      
+      echo "=== Installing sentence-transformers (minimal) ===" &&
+      pip install --no-cache-dir sentence-transformers>=2.3.0 &&
+      
+      echo "=== Downloading TINY model immediately ===" &&
+      python3 -c "
+      import os, gc, sys
+      print('Setting up model cache...')
+      os.makedirs('/tmp/sentence_transformers', exist_ok=True)
+      os.environ['SENTENCE_TRANSFORMERS_HOME'] = '/tmp/sentence_transformers'
+      os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+      
+      print('Loading ultra-small model...')
+      from sentence_transformers import SentenceTransformer
+      model = SentenceTransformer('paraphrase-MiniLM-L3-v2', cache_folder='/tmp/sentence_transformers', device='cpu')
+      print(f'✓ Model cached: {model.get_sentence_embedding_dimension()} dimensions')
+      
+      # Immediate cleanup
+      del model
+      gc.collect()
+      print('✓ Model cached and memory cleaned')
+      " &&
+      
+      echo "=== Memory status after build ===" &&
+      free -h 2>/dev/null || echo "Build complete" &&
+      echo "=== BUILD COMPLETE ==="
+    
+    # Ultra-optimized start command
     startCommand: |
-      echo "=== Starting Application ===" &&
-      echo "Port: $PORT" &&
-      echo "Environment: $FLASK_ENV" &&
-      gunicorn --bind 0.0.0.0:$PORT app:app \
+      echo "=== STARTING 512MB-OPTIMIZED APP ===" &&
+      
+      # Memory status
+      echo "Memory at startup:" && free -h 2>/dev/null || echo "N/A" &&
+      
+      # Set memory-optimized Python flags
+      export PYTHONUNBUFFERED=1
+      export PYTHONDONTWRITEBYTECODE=1
+      export PYTHONHASHSEED=0
+      export TOKENIZERS_PARALLELISM=false
+      export OMP_NUM_THREADS=1
+      export MKL_NUM_THREADS=1
+      
+      # Pre-cleanup
+      python3 -c "import gc; gc.collect(); print('Pre-startup cleanup done')" &&
+      
+      # Start with minimal workers and aggressive memory limits
+      exec gunicorn --bind 0.0.0.0:$PORT app:app \
         --workers 1 \
-        --timeout 120 \
+        --timeout 240 \
         --worker-class sync \
+        --max-requests 20 \
+        --max-requests-jitter 5 \
+        --worker-tmp-dir /dev/shm \
         --preload \
-        --worker-connections 100 \
-        --max-requests 100 \
-        --max-requests-jitter 10 \
-        --log-level info
+        --worker-connections 50 \
+        --log-level info \
+        --access-logfile - \
+        --error-logfile -
     
     envVars:
-      # Python Configuration
-      - key: PYTHON_VERSION
-        value: "3.11.0"
+      # ULTRA-SMALL MODEL (critical!)
+      - key: SENTENCE_TRANSFORMER_MODEL
+        value: paraphrase-MiniLM-L3-v2  # Only ~30MB model
+        
+      # Memory optimization flags
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: PYTHONDONTWRITEBYTECODE
         value: "1"
+      - key: PYTHONHASHSEED
+        value: "0"
+      - key: TOKENIZERS_PARALLELISM
+        value: "false"
+      - key: OMP_NUM_THREADS
+        value: "1"
+      - key: MKL_NUM_THREADS
+        value: "1"
       
-      # Database Configuration
+      # Minimal database pool (single connection)
+      - key: DB_MIN_POOL_SIZE
+        value: "1"
+      - key: DB_MAX_POOL_SIZE
+        value: "1"
+      - key: DB_COMMAND_TIMEOUT
+        value: "90"
+      
+      # App optimizations
+      - key: OPTIMIZE_FOR_MEMORY
+        value: "true"
+      - key: MODEL_CACHE_DIR
+        value: /tmp/sentence_transformers
+      - key: MAX_RECOMMENDATION_LIMIT
+        value: "5"  # Lower limit to save memory
+      - key: DEFAULT_RECOMMENDATION_LIMIT
+        value: "3"  # Even lower default
+      
+      # Required configs
       - key: DATABASE_URL
         fromDatabase:
           name: music-recommendations-db
           property: connectionString
-      
-      # Flask Configuration
       - key: FLASK_ENV
         value: production
       - key: FLASK_DEBUG
         value: "false"
       - key: SECRET_KEY
         generateValue: true
-      
-      # Model Configuration
-      - key: SENTENCE_TRANSFORMER_MODEL
-        value: sentence-transformers/all-MiniLM-L12-v1
-      - key: MODEL_CACHE_DIR
-        value: /tmp/sentence_transformers
-      
-      # Application Configuration
-      - key: DEFAULT_RECOMMENDATION_LIMIT
-        value: "5"
-      - key: MAX_RECOMMENDATION_LIMIT
-        value: "10"
       - key: LOG_LEVEL
         value: INFO
-      
-      # Database Pool Configuration (optimized for 512MB RAM)
-      - key: DB_MIN_POOL_SIZE
-        value: "1"
-      - key: DB_MAX_POOL_SIZE
-        value: "2"
-      - key: DB_COMMAND_TIMEOUT
-        value: "60"
-      
-      # Server Configuration
       - key: HOST
         value: "0.0.0.0"
-      
-      # Render Platform Detection
-      - key: RENDER
-        value: "true"
-      
-      # Optional Kaggle Credentials (set these manually if needed)
-      - key: KAGGLE_USERNAME
-        sync: false
-      - key: KAGGLE_KEY
-        sync: false
 
 databases:
   - name: music-recommendations-db
@@ -117,8 +138,3 @@ databases:
     user: music_user
     plan: free
     postgresMajorVersion: 15
-    # Ensure pgvector extension is available
-    preDeployCommand: |
-      echo "=== Setting up PostgreSQL with pgvector ===" &&
-      psql $DATABASE_URL -c "CREATE EXTENSION IF NOT EXISTS vector;" &&
-      echo "=== pgvector extension enabled ==="

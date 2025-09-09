@@ -28,22 +28,25 @@ class Config:
     # Database Configuration
     DATABASE_URL = os.getenv('DATABASE_URL')
     
-    # Model Configuration - Using minimal model for 512MB RAM constraint
-    SENTENCE_TRANSFORMER_MODEL = os.getenv('SENTENCE_TRANSFORMER_MODEL', 'sentence-transformers/all-MiniLM-L12-v1')
+    # Memory Optimization Settings for 512MB
+    OPTIMIZE_FOR_MEMORY = os.getenv('OPTIMIZE_FOR_MEMORY', 'false').lower() == 'true'
+    
+    # Model Configuration - Using ultra-small model for 512MB RAM constraint
+    SENTENCE_TRANSFORMER_MODEL = os.getenv('SENTENCE_TRANSFORMER_MODEL', 'paraphrase-MiniLM-L3-v2')
     
     # Kaggle API Configuration (optional)
     KAGGLE_USERNAME = os.getenv('KAGGLE_USERNAME')
     KAGGLE_KEY = os.getenv('KAGGLE_KEY')
     
-    # Database Pool Configuration - Optimized for Render's free tier
+    # Database Pool Configuration - Optimized for 512MB constraint
     DB_MIN_POOL_SIZE = int(os.getenv('DB_MIN_POOL_SIZE', '1'))
-    DB_MAX_POOL_SIZE = int(os.getenv('DB_MAX_POOL_SIZE', '2'))  # Keep low for memory
-    DB_COMMAND_TIMEOUT = int(os.getenv('DB_COMMAND_TIMEOUT', '60'))
+    DB_MAX_POOL_SIZE = int(os.getenv('DB_MAX_POOL_SIZE', '1'))  # Single connection for memory
+    DB_COMMAND_TIMEOUT = int(os.getenv('DB_COMMAND_TIMEOUT', '90'))
     
-    # Application Configuration
+    # Application Configuration - Lower limits for memory
     APP_NAME = os.getenv('APP_NAME', 'music_recommendations')
-    DEFAULT_RECOMMENDATION_LIMIT = int(os.getenv('DEFAULT_RECOMMENDATION_LIMIT', '5'))
-    MAX_RECOMMENDATION_LIMIT = int(os.getenv('MAX_RECOMMENDATION_LIMIT', '10'))
+    DEFAULT_RECOMMENDATION_LIMIT = int(os.getenv('DEFAULT_RECOMMENDATION_LIMIT', '3'))
+    MAX_RECOMMENDATION_LIMIT = int(os.getenv('MAX_RECOMMENDATION_LIMIT', '5'))
     
     # Server Configuration
     HOST = os.getenv('HOST', '0.0.0.0')
@@ -61,6 +64,22 @@ class Config:
     MODEL_CACHE_DIR = os.getenv('MODEL_CACHE_DIR', '/tmp/sentence_transformers' if IS_RENDER else './models')
     
     @classmethod
+    def setup_memory_optimizations(cls):
+        """Set up environment for minimal memory usage."""
+        if cls.OPTIMIZE_FOR_MEMORY:
+            # Disable parallelism to save memory
+            os.environ['TOKENIZERS_PARALLELISM'] = 'false'
+            os.environ['OMP_NUM_THREADS'] = '1'
+            os.environ['MKL_NUM_THREADS'] = '1'
+            os.environ['NUMEXPR_MAX_THREADS'] = '1'
+            
+            # Force garbage collection
+            import gc
+            gc.collect()
+            
+            logging.info("Memory optimizations applied for 512MB constraint")
+    
+    @classmethod
     def validate(cls):
         """
         Validate that all required configuration is present.
@@ -73,9 +92,17 @@ class Config:
         if not cls.DATABASE_URL:
             errors.append("DATABASE_URL environment variable is required!")
         
+        # Set up memory optimizations early
+        cls.setup_memory_optimizations()
+        
+        # Memory-specific warnings
+        if cls.OPTIMIZE_FOR_MEMORY:
+            logging.warning("Running in 512MB memory-optimized mode")
+            logging.warning("Some features may be limited to conserve memory")
+        
         # Check if running on Render
         if cls.IS_RENDER:
-            logging.info("Running on Render platform")
+            logging.info("Running on Render platform with memory optimizations")
             # Ensure proper port binding
             if not os.getenv('PORT'):
                 logging.warning("PORT environment variable not set, using default")
@@ -102,6 +129,7 @@ class Config:
         logging.info(f"Environment: {'Production' if cls.IS_PRODUCTION else 'Development'}")
         logging.info(f"Model: {cls.SENTENCE_TRANSFORMER_MODEL}")
         logging.info(f"Database pool: {cls.DB_MIN_POOL_SIZE}-{cls.DB_MAX_POOL_SIZE}")
+        logging.info(f"Memory optimized: {cls.OPTIMIZE_FOR_MEMORY}")
         logging.info(f"Port: {cls.PORT}, Host: {cls.HOST}")
 
 # Initialize logging with configured level
@@ -110,6 +138,9 @@ logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
 )
 logger = logging.getLogger(__name__)
+
+# Apply memory optimizations on import
+Config.setup_memory_optimizations()
 
 # Validate configuration on import
 try:

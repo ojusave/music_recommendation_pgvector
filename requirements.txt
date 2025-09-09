@@ -1,25 +1,17 @@
-# Music Recommendation Web App Dependencies - Python 3.13 Compatible
-# =====================================================================
-
-# Web Framework
+# Web Framework (Essential)
 Flask==3.0.0
-Flask-CORS==4.0.0
 gunicorn==21.2.0
 
-# Database and Vector Operations - Python 3.13 Compatible
+# Database ONLY (Remove pandas to save 50-80MB)
 asyncpg>=0.30.0,<1.0.0
 psycopg2-binary>=2.9.7,<3.0.0
 
-# Data Processing - Python 3.13 Compatible
+# Minimal Data Processing (numpy only, NO pandas)
 numpy>=1.26.0,<2.0.0
-pandas>=2.1.0,<3.0.0
 
-# Machine Learning - Python 3.13 Compatible
+# Machine Learning (CPU-only, minimal)
+torch>=2.1.2,<3.0.0 --index-url https://download.pytorch.org/whl/cpu
 sentence-transformers>=2.3.0,<3.0.0
-torch>=2.1.2,<3.0.0
 
-# Kaggle API
-kaggle>=1.6.0,<2.0.0
-
-# Utilities
+# Utilities ONLY
 python-dotenv>=1.0.0,<2.0.0
