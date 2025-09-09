@@ -1,6 +1,13 @@
 """
 Music Recommendation Web App - Semantic search using pgvector with PostgreSQL.
-Demonstrates production-ready vector similarity search with natural language queries.
+
+This app demonstrates how AI can understand natural language queries like "sad piano music"
+and find similar songs using vector similarity search in PostgreSQL.
+
+Key concepts:
+- Vectors: Lists of numbers that represent text meaning
+- pgvector: PostgreSQL extension for vector similarity search
+- Semantic search: Finding similar meanings, not just exact text matches
 """
 
 import asyncio, sys, logging
@@ -10,12 +17,16 @@ from flask import Flask, render_template, request, jsonify
 #from flask_cors import CORS
 from src import Config, MusicRecommendationEngine
 
+# Set up logging to see what's happening
 logging.basicConfig(level=Config.LOG_LEVEL)
 logger = logging.getLogger(__name__)
 
+# Create Flask web application
 app = Flask(__name__)
 app.config['SECRET_KEY'] = Config.SECRET_KEY
 #CORS(app)  # Enable CORS for all routes
+
+# Create the AI recommendation engine (this does the vector magic)
 recommendation_engine = MusicRecommendationEngine()
 
 @app.route('/')
@@ -28,31 +39,38 @@ def api_recommend():
     """
     API endpoint for music recommendations using semantic search.
     
+    How it works:
+    1. Takes your natural language query (like "sad piano music")
+    2. Converts it to a vector (list of numbers representing meaning)
+    3. Finds songs with similar vectors in the database
+    4. Returns the most similar songs
+    
     Input: {"query": "upbeat rock music", "limit": 5}
     Output: {"success": true, "recommendations": [...], "query": "...", "count": 5}
     """
     logger.info("=== API RECOMMEND CALLED ===")
     try:
+        # Get the JSON data from the request
         data = request.get_json()
         logger.info(f"Request data: {data}")
         
-        # Validate input
+        # Validate that we have a query
         if not data or 'query' not in data:
             logger.error("Missing query parameter")
-            return jsonify({'success': False, 'error': 'Missing query parameter'}), 400
+            return jsonify({'success': False, 'error': 'Missing query parameter - send {"query": "your search"}'}), 400
         
         query = data['query'].strip()
         logger.info(f"Processing search query: '{query}'")
         if not query:
             logger.error("Empty query")
-            return jsonify({'success': False, 'error': 'Query cannot be empty'}), 400
+            return jsonify({'success': False, 'error': 'Query cannot be empty - try "happy songs" or "rock music"'}), 400
         
-        # Set limit with bounds checking
+        # Set limit with bounds checking (how many results to return)
         limit = data.get('limit', Config.DEFAULT_RECOMMENDATION_LIMIT)
         if not isinstance(limit, int) or limit < 1 or limit > Config.MAX_RECOMMENDATION_LIMIT:
             limit = Config.DEFAULT_RECOMMENDATION_LIMIT
         
-        # Get recommendations using semantic search (synchronous)
+        # Get recommendations using semantic search (this is where the AI magic happens!)
         logger.info(f"Calling get_recommendations_sync with query='{query}', limit={limit}")
         recommendations = recommendation_engine.get_recommendations_sync(query, limit)
         logger.info(f"Successfully got {len(recommendations)} recommendations")
@@ -66,10 +84,18 @@ def api_recommend():
         
     except MemoryError as e:
         logger.error(f"Memory error in recommendation API: {e}")
-        return jsonify({'success': False, 'error': 'Server overloaded - please try again'}), 503
+        return jsonify({'success': False, 'error': 'Server overloaded - try setting OPTIMIZE_FOR_MEMORY=true'}), 503
+    except RuntimeError as e:
+        error_msg = str(e)
+        if "DATABASE_URL" in error_msg:
+            return jsonify({'success': False, 'error': 'Database connection failed. Check your DATABASE_URL environment variable.'}), 500
+        elif "pgvector" in error_msg:
+            return jsonify({'success': False, 'error': 'pgvector extension missing. Run: CREATE EXTENSION IF NOT EXISTS vector;'}), 500
+        else:
+            return jsonify({'success': False, 'error': error_msg}), 500
     except Exception as e:
         logger.error(f"Recommendation API error: {e}", exc_info=True)
-        return jsonify({'success': False, 'error': 'Internal server error'}), 500
+        return jsonify({'success': False, 'error': 'Internal server error - check logs for details'}), 500
 
 @app.route('/api/status')
 def api_status():

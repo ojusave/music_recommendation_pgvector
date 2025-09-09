@@ -22,16 +22,18 @@ class Config:
     production applications.
     """
     
-    # Flask Configuration
+    # Flask Configuration - Secret key for session security
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     
-    # Database Configuration
+    # Database URL - This tells your app how to connect to PostgreSQL
+    # Format: postgresql://username:password@host:port/database_name
     DATABASE_URL = os.getenv('DATABASE_URL')
     
-    # Memory Optimization Settings for 512MB
+    # Memory optimization - Set to 'true' if you're on Render's 512MB free tier
     OPTIMIZE_FOR_MEMORY = os.getenv('OPTIMIZE_FOR_MEMORY', 'false').lower() == 'true'
     
-    # Model Configuration - Using ultra-small model for 512MB RAM constraint
+    # Vector model - This is the AI brain that converts text to numbers
+    # paraphrase-MiniLM-L3-v2 is small (30MB) and fast
     SENTENCE_TRANSFORMER_MODEL = os.getenv('SENTENCE_TRANSFORMER_MODEL', 'paraphrase-MiniLM-L3-v2')
     
     # Kaggle API Configuration (optional)

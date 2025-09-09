@@ -2,121 +2,86 @@ services:
   - type: web
     name: music-recommendations
     env: python
-    plan: starter  # 512MB - we'll make this work!
+    plan: starter
     
-    # Ultra-aggressive build for 512MB
     buildCommand: |
-      echo "=== ULTRA-AGGRESSIVE 512MB BUILD ===" &&
-      echo "Available memory at start:" && free -h 2>/dev/null || echo "N/A" &&
+      # Install dependencies
+      pip install --upgrade pip --no-cache-dir
       
-      # Upgrade pip efficiently
-      pip install --upgrade pip --no-cache-dir &&
+      # Core application dependencies
+      pip install --no-cache-dir Flask==3.0.0 gunicorn==21.2.0
+      pip install --no-cache-dir asyncpg>=0.30.0 psycopg2-binary>=2.9.7
+      pip install --no-cache-dir numpy>=1.26.0 python-dotenv>=1.0.0
       
-      echo "=== Installing MINIMAL dependencies ===" &&
-      # Install only essential packages, no pandas!
-      pip install --no-cache-dir Flask==3.0.0 gunicorn==21.2.0 &&
-      pip install --no-cache-dir asyncpg>=0.30.0 psycopg2-binary>=2.9.7 &&
-      pip install --no-cache-dir numpy>=1.26.0 python-dotenv>=1.0.0 &&
+      # ML dependencies - CPU optimized
+      pip install --no-cache-dir torch>=2.1.2 --index-url https://download.pytorch.org/whl/cpu
+      pip install --no-cache-dir sentence-transformers>=2.3.0
       
-      echo "=== Installing PyTorch CPU-ONLY (minimal) ===" &&
-      pip install --no-cache-dir torch>=2.1.2 --index-url https://download.pytorch.org/whl/cpu &&
-      
-      echo "=== Installing sentence-transformers (minimal) ===" &&
-      pip install --no-cache-dir sentence-transformers>=2.3.0 &&
-      
-      echo "=== Downloading TINY model immediately ===" &&
+      # Pre-cache model to improve startup time
       python3 -c "
-      import os, gc, sys
-      print('Setting up model cache...')
+      import os
       os.makedirs('/tmp/sentence_transformers', exist_ok=True)
       os.environ['SENTENCE_TRANSFORMERS_HOME'] = '/tmp/sentence_transformers'
       os.environ['TOKENIZERS_PARALLELISM'] = 'false'
       
-      print('Loading ultra-small model...')
       from sentence_transformers import SentenceTransformer
       model = SentenceTransformer('paraphrase-MiniLM-L3-v2', cache_folder='/tmp/sentence_transformers', device='cpu')
-      print(f'✓ Model cached: {model.get_sentence_embedding_dimension()} dimensions')
-      
-      # Immediate cleanup
-      del model
-      gc.collect()
-      print('✓ Model cached and memory cleaned')
-      " &&
-      
-      echo "=== Memory status after build ===" &&
-      free -h 2>/dev/null || echo "Build complete" &&
-      echo "=== BUILD COMPLETE ==="
+      print(f'Model cached successfully: {model.get_sentence_embedding_dimension()} dimensions')
+      "
     
-    # Ultra-optimized start command
     startCommand: |
-      echo "=== STARTING 512MB-OPTIMIZED APP ===" &&
-      
-      # Memory status
-      echo "Memory at startup:" && free -h 2>/dev/null || echo "N/A" &&
-      
-      # Set memory-optimized Python flags
+      # Configure Python environment for production
       export PYTHONUNBUFFERED=1
       export PYTHONDONTWRITEBYTECODE=1
-      export PYTHONHASHSEED=0
       export TOKENIZERS_PARALLELISM=false
       export OMP_NUM_THREADS=1
-      export MKL_NUM_THREADS=1
       
-      # Pre-cleanup
-      python3 -c "import gc; gc.collect(); print('Pre-startup cleanup done')" &&
-      
-      # Start with minimal workers and aggressive memory limits
+      # Start application server
       exec gunicorn --bind 0.0.0.0:$PORT app:app \
         --workers 1 \
         --timeout 240 \
         --worker-class sync \
-        --max-requests 20 \
-        --max-requests-jitter 5 \
+        --max-requests 50 \
         --worker-tmp-dir /dev/shm \
         --preload \
-        --worker-connections 50 \
         --log-level info \
         --access-logfile - \
         --error-logfile -
     
     envVars:
-      # ULTRA-SMALL MODEL (critical!)
+      # Model configuration
       - key: SENTENCE_TRANSFORMER_MODEL
-        value: paraphrase-MiniLM-L3-v2  # Only ~30MB model
+        value: paraphrase-MiniLM-L3-v2
         
-      # Memory optimization flags
+      # Python optimization
       - key: PYTHONUNBUFFERED
         value: "1"
       - key: PYTHONDONTWRITEBYTECODE
         value: "1"
-      - key: PYTHONHASHSEED
-        value: "0"
       - key: TOKENIZERS_PARALLELISM
         value: "false"
       - key: OMP_NUM_THREADS
         value: "1"
-      - key: MKL_NUM_THREADS
-        value: "1"
       
-      # Minimal database pool (single connection)
+      # Database configuration
       - key: DB_MIN_POOL_SIZE
         value: "1"
       - key: DB_MAX_POOL_SIZE
-        value: "1"
+        value: "2"
       - key: DB_COMMAND_TIMEOUT
-        value: "90"
+        value: "60"
       
-      # App optimizations
+      # Application settings
       - key: OPTIMIZE_FOR_MEMORY
         value: "true"
       - key: MODEL_CACHE_DIR
         value: /tmp/sentence_transformers
       - key: MAX_RECOMMENDATION_LIMIT
-        value: "5"  # Lower limit to save memory
+        value: "10"
       - key: DEFAULT_RECOMMENDATION_LIMIT
-        value: "3"  # Even lower default
+        value: "5"
       
-      # Required configs
+      # Runtime configuration
       - key: DATABASE_URL
         fromDatabase:
           name: music-recommendations-db

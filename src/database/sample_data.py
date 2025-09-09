@@ -3,6 +3,14 @@ Sample Data Definitions
 =======================
 
 Contains curated sample music data for the recommendation system.
+
+This file demonstrates how to structure song data for semantic search.
+Each song has a 'description' field that the AI uses to understand the song's meaning.
+
+Tips for good descriptions:
+- Include genre, mood, tempo
+- Add descriptive words that users might search for
+- Think about how someone would describe the song to a friend
 """
 
 from typing import List, Dict
@@ -11,9 +19,11 @@ def get_sample_songs() -> List[Dict]:
     """
     Get curated sample songs with enhanced semantic descriptions.
     
-    These songs are used as fallback data when Kaggle dataset is not available,
-    or for testing purposes. Each song includes rich descriptions optimized
-    for semantic search.
+    These 10 songs represent different genres and moods to test semantic search.
+    The descriptions are crafted to work well with natural language queries like:
+    - "happy dance music" → Dancing Queen
+    - "sad piano ballad" → Yesterday, Imagine
+    - "energetic rock workout" → Smells Like Teen Spirit, Sweet Child O Mine
     
     Returns:
         List[Dict]: List of song dictionaries with metadata

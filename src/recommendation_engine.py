@@ -56,19 +56,22 @@ class MusicRecommendationEngine:
         async with self.connection_pool.acquire() as conn:
             try:
                 count = await conn.fetchval("SELECT COUNT(*) FROM songs")
-                logger.info(f"Database contains {count:,} songs")
+                logger.info(f"Database connected! Found {count:,} songs")
                 if count == 0:
-                    logger.warning("No songs found - auto-loading data...")
+                    logger.info("No songs found - loading sample data...")
                     await self.database_setup.setup_database(self.connection_pool)
             except Exception as e:
-                logger.warning(f"Songs table not found: {e}")
-                logger.info("Auto-setting up database...")
-                await self.database_setup.setup_database(self.connection_pool)
+                if "does not exist" in str(e):
+                    logger.info("Setting up database for first time...")
+                    await self.database_setup.setup_database(self.connection_pool)
+                else:
+                    logger.error(f"Database connection failed. Is your DATABASE_URL correct? Error: {e}")
+                    raise
     
     async def get_recommendations(self, query: str, limit: int = 5) -> List[Dict]:
         """Get music recommendations based on natural language query using pgvector similarity search."""
         if not self.model or not self.connection_pool:
-            raise RuntimeError("Recommendation engine not initialized")
+            raise RuntimeError("Recommendation engine not initialized. Check your DATABASE_URL and model loading.")
         
         logger.info(f"Processing query: '{query}'")
         
@@ -92,7 +95,10 @@ class MusicRecommendationEngine:
                 results = await conn.fetch(search_query, query_vector_str, limit)
             except Exception as e:
                 if "does not exist" in str(e):
-                    raise RuntimeError("Database not initialized")
+                    raise RuntimeError("Database tables not found. Make sure pgvector extension is enabled: CREATE EXTENSION vector;")
+                if "vector" in str(e).lower():
+                    raise RuntimeError("pgvector extension not installed. Run: CREATE EXTENSION IF NOT EXISTS vector;")
+                logger.error(f"Database query failed: {e}")
                 raise e
         
         # Convert results to API format with music service links
