@@ -81,7 +81,7 @@ class MusicRecommendationEngine:
         search_query = """
         SELECT song_id, song_name, band, description,
                (embedding <-> $1::vector) as raw_distance,
-               ROUND(CAST((8.0 - (embedding <-> $1::vector)) / 8.0 * 100.0 AS numeric), 1) as similarity_score
+               ROUND(CAST((1.0 - (embedding <-> $1::vector) / 2.0) * 100.0 AS numeric), 1) as similarity_score
         FROM songs 
         ORDER BY embedding <-> $1::vector ASC
         LIMIT $2
@@ -124,15 +124,16 @@ class MusicRecommendationEngine:
         
         logger.info(f"Processing query: '{query}'")
         
-        # Generate query embedding
-        query_vector = self.model.encode([query])
-        query_vector_str = f"[{','.join(map(str, query_vector[0]))}]"
+        # Generate query embedding - MATCH the async method exactly
+        query_embedding = self.model.encode(query)  # Don't wrap in list
+        query_embedding = query_embedding / np.linalg.norm(query_embedding)  # Normalize!
+        query_vector_str = '[' + ','.join(map(str, query_embedding.tolist())) + ']'
         
         # SQL query for semantic similarity search
         search_query = """
             SELECT song_name, band, 
                    (embedding <-> %s::vector) as raw_distance,
-                   ROUND(CAST((8.0 - (embedding <-> %s::vector)) / 8.0 * 100.0 AS numeric), 1) as similarity_score
+                   ROUND(CAST((1.0 - (embedding <-> %s::vector) / 2.0) * 100.0 AS numeric), 1) as similarity_score
             FROM songs 
             ORDER BY embedding <-> %s::vector 
             LIMIT %s
@@ -153,8 +154,8 @@ class MusicRecommendationEngine:
                 song_name, band, raw_distance, similarity_score = row
                 recommendations.append({
                     'song_name': song_name,
-                    'artist': band,  # Frontend expects 'artist' field
-                    'band': band,    # Keep 'band' for backward compatibility  
+                    'artist': band,
+                    'band': band,
                     'similarity_score': float(similarity_score),
                     'raw_distance': round(float(raw_distance), 4),
                     'youtube_url': f"https://www.youtube.com/results?search_query={urllib.parse.quote(f'{song_name} {band}')}",
