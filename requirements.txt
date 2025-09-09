@@ -1,25 +1,25 @@
-# Music Recommendation Web App Dependencies - Optimized for 512MB RAM
+# Music Recommendation Web App Dependencies - Python 3.13 Compatible
 # =====================================================================
 
 # Web Framework
-Flask==2.3.3
+Flask==3.0.0
 Flask-CORS==4.0.0
 gunicorn==21.2.0
 
-# Database and Vector Operations
-asyncpg==0.29.0
-psycopg2-binary==2.9.7
+# Database and Vector Operations - Python 3.13 Compatible
+asyncpg>=0.30.0,<1.0.0
+psycopg[binary]>=3.1.0,<4.0.0
 
-# Data Processing
-numpy==1.24.3
-pandas==2.0.3
+# Data Processing - Python 3.13 Compatible
+numpy>=1.26.0,<2.0.0
+pandas>=2.1.0,<3.0.0
 
-# Machine Learning - Compatible versions for current deployment
-sentence-transformers==2.2.2
-torch==2.1.0
+# Machine Learning - Python 3.13 Compatible
+sentence-transformers>=2.3.0,<3.0.0
+torch>=2.1.2,<3.0.0
 
 # Kaggle API
-kaggle==1.5.16
+kaggle>=1.6.0,<2.0.0
 
 # Utilities
-python-dotenv==1.0.0
+python-dotenv>=1.0.0,<2.0.0
