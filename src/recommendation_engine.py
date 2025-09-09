@@ -1,10 +1,18 @@
 """Music Recommendation Engine - Core semantic search using pgvector."""
 
-import asyncio, asyncpg, numpy as np, logging, urllib.parse, gc, psycopg2
+import asyncio, asyncpg, numpy as np, logging, urllib.parse, gc
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict
 from .config import Config
 from .database_setup import DatabaseSetup
+
+# Handle psycopg2 import gracefully
+try:
+    import psycopg2
+    PSYCOPG2_AVAILABLE = True
+except ImportError:
+    PSYCOPG2_AVAILABLE = False
+    logging.warning("psycopg2 not available, sync methods will be disabled")
 
 logger = logging.getLogger(__name__)
 
@@ -110,6 +118,10 @@ class MusicRecommendationEngine:
 
     def get_recommendations_sync(self, query: str, limit: int = 5) -> List[Dict]:
         """Synchronous version of get_recommendations for Flask compatibility."""
+        if not PSYCOPG2_AVAILABLE:
+            logger.error("psycopg2 not available for sync operations")
+            raise RuntimeError("Synchronous database operations not available. Please install psycopg2-binary.")
+        
         logger.info(f"Processing query: '{query}'")
         
         # Generate query embedding
@@ -184,6 +196,10 @@ class MusicRecommendationEngine:
 
     def get_database_stats_sync(self) -> Dict:
         """Synchronous version of get_database_stats for Flask compatibility."""
+        if not PSYCOPG2_AVAILABLE:
+            logger.warning("psycopg2 not available for sync stats")
+            return {'status': 'error', 'message': 'psycopg2 not available'}
+        
         try:
             conn = psycopg2.connect(Config.DATABASE_URL)
             cursor = conn.cursor()
