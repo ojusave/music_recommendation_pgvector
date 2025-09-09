@@ -4,10 +4,23 @@ Demonstrates production-ready vector similarity search with natural language que
 """
 
 import asyncio, sys, logging
+from datetime import datetime
 from flask import Flask, render_template, request, jsonify
 
 #from flask_cors import CORS
 from src import Config, MusicRecommendationEngine
+
+# Global recommendation engine (initialized on first use)
+recommendation_engine = None
+
+def get_recommendation_engine():
+    """Get or initialize the recommendation engine."""
+    global recommendation_engine
+    if recommendation_engine is None:
+        logger.info("Initializing recommendation engine...")
+        recommendation_engine = MusicRecommendationEngine()
+        logger.info("Recommendation engine ready")
+    return recommendation_engine
 
 logging.basicConfig(level=Config.LOG_LEVEL)
 logger = logging.getLogger(__name__)
@@ -53,7 +66,8 @@ def api_recommend():
         
         # Get recommendations using semantic search (synchronous)
         logger.info(f"Calling get_recommendations_sync with query='{query}', limit={limit}")
-        recommendations = recommendation_engine.get_recommendations_sync(query, limit)
+        engine = get_recommendation_engine()
+        recommendations = engine.get_recommendations_sync(query, limit)
         logger.info(f"Successfully got {len(recommendations)} recommendations")
         
         return jsonify({
@@ -74,7 +88,8 @@ def api_recommend():
 def api_status():
     """Status endpoint for monitoring database health and statistics."""
     try:
-        stats = recommendation_engine.get_database_stats_sync()
+        engine = get_recommendation_engine()
+        stats = engine.get_database_stats_sync()
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Status API error: {e}")
@@ -83,28 +98,11 @@ def api_status():
 @app.route('/health')
 def health_check():
     """Simple health check endpoint for deployment monitoring."""
-    try:
-        stats = recommendation_engine.get_database_stats_sync()
-        if 'error' in stats:
-            return jsonify({
-                'status': 'healthy', 
-                'service': 'music-recommendations',
-                'database': 'not_initialized',
-                'message': 'App is running but database needs setup'
-            })
-        return jsonify({
-            'status': 'healthy', 
-            'service': 'music-recommendations',
-            'database': 'ready',
-            'songs': stats.get('total_songs', 0)
-        })
-    except Exception:
-        return jsonify({
-            'status': 'healthy', 
-            'service': 'music-recommendations',
-            'database': 'unknown',
-            'message': 'App is running but database status unclear'
-        })
+    return jsonify({
+        'status': 'healthy', 
+        'service': 'music-recommendations',
+        'message': 'App is running'
+    })
 
 @app.route('/api/test', methods=['GET', 'POST'])
 def api_test():
@@ -117,16 +115,13 @@ def api_test():
     })
 
 def initialize_app():
-    """Initialize the application components with async compatibility."""
-    try:
-        loop = asyncio.get_running_loop()
-        loop.create_task(recommendation_engine.initialize())
-    except RuntimeError:
-        asyncio.run(recommendation_engine.initialize())
+    """Initialize the application components synchronously."""
+    logger.info("Initializing recommendation engine...")
+    # Skip async initialization since we're using sync methods now
+    logger.info("Using synchronous database operations - no async initialization needed")
 
-# Initialize app when module is loaded (except for testing)
-if __name__ != '__main__' and 'test' not in sys.modules:
-    initialize_app()
+# Skip initialization during import to avoid worker timeout issues
+# The recommendation engine will initialize on first use
 
 if __name__ == '__main__':
     """Main entry point for local development."""
