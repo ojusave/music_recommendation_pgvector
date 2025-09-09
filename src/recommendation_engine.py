@@ -81,7 +81,7 @@ class MusicRecommendationEngine:
         search_query = """
         SELECT song_id, song_name, band, description,
                (embedding <-> $1::vector) as raw_distance,
-               ROUND(CAST(GREATEST(0, (1.0 - (embedding <-> $1::vector) / 2.0) * 100.0) AS numeric), 1) as similarity_score
+               ROUND(CAST((8.0 - (embedding <-> $1::vector)) / 8.0 * 100.0 AS numeric), 1) as similarity_score
         FROM songs 
         ORDER BY embedding <-> $1::vector ASC
         LIMIT $2
@@ -131,7 +131,8 @@ class MusicRecommendationEngine:
         # SQL query for semantic similarity search
         search_query = """
             SELECT song_name, band, 
-                   ROUND(CAST(GREATEST(0, (1.0 - (embedding <-> %s::vector) / 2.0) * 100.0) AS numeric), 1) as similarity_score
+                   (embedding <-> %s::vector) as raw_distance,
+                   ROUND(CAST((8.0 - (embedding <-> %s::vector)) / 8.0 * 100.0 AS numeric), 1) as similarity_score
             FROM songs 
             ORDER BY embedding <-> %s::vector 
             LIMIT %s
@@ -141,7 +142,7 @@ class MusicRecommendationEngine:
         try:
             conn = psycopg2.connect(Config.DATABASE_URL)
             cursor = conn.cursor()
-            cursor.execute(search_query, (query_vector_str, query_vector_str, limit))
+            cursor.execute(search_query, (query_vector_str, query_vector_str, query_vector_str, limit))
             results = cursor.fetchall()
             cursor.close()
             conn.close()
@@ -149,12 +150,13 @@ class MusicRecommendationEngine:
             # Format results
             recommendations = []
             for row in results:
-                song_name, band, similarity_score = row
+                song_name, band, raw_distance, similarity_score = row
                 recommendations.append({
                     'song_name': song_name,
                     'artist': band,  # Frontend expects 'artist' field
                     'band': band,    # Keep 'band' for backward compatibility  
                     'similarity_score': float(similarity_score),
+                    'raw_distance': round(float(raw_distance), 4),
                     'youtube_url': f"https://www.youtube.com/results?search_query={urllib.parse.quote(f'{song_name} {band}')}",
                     'spotify_url': f"https://open.spotify.com/search/{urllib.parse.quote(f'{song_name} {band}')}"
                 })
