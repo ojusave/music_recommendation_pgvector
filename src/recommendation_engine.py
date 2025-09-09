@@ -119,17 +119,17 @@ class MusicRecommendationEngine:
         # SQL query for semantic similarity search
         search_query = """
             SELECT song_name, band, 
-                   ROUND(CAST(GREATEST(0, (1.0 - (embedding <-> $1::vector) / 2.0) * 100.0) AS numeric), 1) as similarity_score
+                   ROUND(CAST(GREATEST(0, (1.0 - (embedding <-> %s::vector) / 2.0) * 100.0) AS numeric), 1) as similarity_score
             FROM songs 
-            ORDER BY embedding <-> $1::vector 
-            LIMIT $2
+            ORDER BY embedding <-> %s::vector 
+            LIMIT %s
         """
         
         # Use synchronous psycopg2 connection
         try:
             conn = psycopg2.connect(Config.DATABASE_URL)
             cursor = conn.cursor()
-            cursor.execute(search_query, (query_vector_str, limit))
+            cursor.execute(search_query, (query_vector_str, query_vector_str, limit))
             results = cursor.fetchall()
             cursor.close()
             conn.close()
