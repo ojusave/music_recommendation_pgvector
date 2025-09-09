@@ -3,7 +3,11 @@
 ## Table of Contents
 - [What is this?](#what-is-this)
 - [Quick Start](#quick-start)
+- [How the Search Works](#how-the-search-works)
+- [Visual Architecture](#visual-architecture)
 - [Live Demo](#live-demo)
+- [Try These Searches](#try-these-searches)
+- [Prerequisites](#prerequisites)
 - [Local Development](#local-development)
 - [API Documentation](#api-documentation)
 - [Troubleshooting](#troubleshooting)
@@ -11,20 +15,17 @@
 ## What is this?
 A web app that lets you search for music using natural language (like "sad piano songs") instead of exact titles. It uses AI to understand what you mean and finds similar music.
 
-## How it works
-1. You type "upbeat rock songs" 
-2. AI converts your words into numbers (vectors)
-3. Database finds songs with similar numbers
-4. You get recommendations!
-
 **Tech Stack:** Flask + PostgreSQL + pgvector + Sentence Transformers
 
-## Quick Start
+## Quick Start 
 
-**One-Click Deploy:**
+**One-Click Deploy:** 
 [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
 
-**What's a vector?** Think of it as a list of numbers that represents the "meaning" of text. Similar meanings have similar numbers.
+*Wait 2-3 minutes and your app is live!*
+
+**What's a vector?** 
+Think of it as a list of numbers that represents the "meaning" of text. Similar meanings have similar numbers.
 
 **Example:**
 - "happy song" → [0.1, 0.8, 0.2, ...]
@@ -33,35 +34,35 @@ A web app that lets you search for music using natural language (like "sad piano
 
 **What's pgvector?** A PostgreSQL extension that can store these number lists and find similar ones quickly.
 
+## How the Search Works
+
+1. **Text to Vector**: Your query "sad piano music" gets converted to a 384-dimensional vector using a pre-trained sentence transformer model
+2. **Vector Normalization**: The vector is normalized to unit length for proper cosine similarity calculation
+3. **Database Search**: pgvector compares your query vector against all song vectors using cosine distance (`<->` operator)
+4. **Similarity Scoring**: Raw distances (0-2) are converted to percentage scores: `(1.0 - distance/2.0) * 100`
+5. **Ranking**: Songs are ranked by similarity score and returned as recommendations
+
+**Why this works**: The sentence transformer model was trained on millions of text pairs, learning that "sad" and "melancholic" have similar meanings, "piano" and "ballad" often go together, etc.
+
 ## Visual Architecture
 
 ```
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Your Query    │───▶│   AI Model       │───▶│   Vector        │
 │ "sad piano"     │    │ Converts to      │    │ [0.2, 0.8, ...] │
-└─────────────────┘    │ numbers          │    └─────────────────┘  
+└─────────────────┘    │ numbers          │    └─────────────────┘
                        └──────────────────┘              │
                                                          ▼
 ┌─────────────────┐    ┌──────────────────┐    ┌─────────────────┐
 │   Results       │◀───│   pgvector       │◀───│   Database      │
-│ "Moonlight      │    │ Finds similar    │    │ Stores vectors  │
-│  Sonata"        │    │ vectors          │    │ + song info     │
+│ "Lonely Day     │    │ Finds similar    │    │ Stores vectors  │
+│ (piano cover)"  │    │ vectors          │    │ + song info     │
 └─────────────────┘    └──────────────────┘    └─────────────────┘
 ```
 
-## Quick Start (5 minutes)
-
-**Option 1: One-Click Deploy (Recommended for beginners)**
-1. Click this button: [![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy)
-2. Wait 2-3 minutes for deployment
-3. Done! Your app is live.
-
-**Option 2: Manual (If you want to understand each step)**
-[See Manual Render Deployment section below]
-
 ## Live Demo
 
-**Working Example**: [https://music-recommendations-hz3i.onrender.com/](https://music-recommendations-hz3i.onrender.com/)
+**Example**: [https://music-recommendations-hz3i.onrender.com/](https://music-recommendations-hz3i.onrender.com/)
 
 Try the live demo with natural language queries like:
 - "sad piano music"
@@ -75,7 +76,6 @@ Try the live demo with natural language queries like:
 - **"sad piano music"** → "Lonely Day (piano cover)" by System Of A Down (55.6%)
 - **"upbeat rock songs"** → "Rock It" by Sub Focus (54.2%)
 
-*Results show similarity scores from the live demo*
 
 ## Prerequisites
 - Python 3.9+
