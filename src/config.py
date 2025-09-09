@@ -28,8 +28,8 @@ class Config:
     # Database Configuration
     DATABASE_URL = os.getenv('DATABASE_URL')
     
-    # Model Configuration - Using ultra-lightweight model for 512MB RAM
-    SENTENCE_TRANSFORMER_MODEL = os.getenv('SENTENCE_TRANSFORMER_MODEL', 'paraphrase-MiniLM-L3-v2')
+    # Model Configuration - Using minimal model for 512MB RAM constraint
+    SENTENCE_TRANSFORMER_MODEL = os.getenv('SENTENCE_TRANSFORMER_MODEL', 'sentence-transformers/all-MiniLM-L12-v1')
     
     # Kaggle API Configuration
     KAGGLE_USERNAME = os.getenv('KAGGLE_USERNAME')

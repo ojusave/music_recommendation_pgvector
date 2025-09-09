@@ -30,15 +30,20 @@ def api_recommend():
     Input: {"query": "upbeat rock music", "limit": 5}
     Output: {"success": true, "recommendations": [...], "query": "...", "count": 5}
     """
+    logger.info("=== API RECOMMEND CALLED ===")
     try:
         data = request.get_json()
+        logger.info(f"Request data: {data}")
         
         # Validate input
         if not data or 'query' not in data:
+            logger.error("Missing query parameter")
             return jsonify({'success': False, 'error': 'Missing query parameter'}), 400
         
         query = data['query'].strip()
+        logger.info(f"Processing search query: '{query}'")
         if not query:
+            logger.error("Empty query")
             return jsonify({'success': False, 'error': 'Query cannot be empty'}), 400
         
         # Set limit with bounds checking
@@ -47,7 +52,9 @@ def api_recommend():
             limit = Config.DEFAULT_RECOMMENDATION_LIMIT
         
         # Get recommendations using semantic search (synchronous)
+        logger.info(f"Calling get_recommendations_sync with query='{query}', limit={limit}")
         recommendations = recommendation_engine.get_recommendations_sync(query, limit)
+        logger.info(f"Successfully got {len(recommendations)} recommendations")
         
         return jsonify({
             'success': True,
@@ -77,7 +84,7 @@ def api_status():
 def health_check():
     """Simple health check endpoint for deployment monitoring."""
     try:
-        stats = asyncio.run(recommendation_engine.get_database_stats())
+        stats = recommendation_engine.get_database_stats_sync()
         if 'error' in stats:
             return jsonify({
                 'status': 'healthy', 
@@ -98,6 +105,16 @@ def health_check():
             'database': 'unknown',
             'message': 'App is running but database status unclear'
         })
+
+@app.route('/api/test', methods=['GET', 'POST'])
+def api_test():
+    """Test endpoint to check if API is reachable."""
+    logger.info(f"=== API TEST CALLED - Method: {request.method} ===")
+    return jsonify({
+        'status': 'API is working',
+        'method': request.method,
+        'timestamp': str(datetime.now())
+    })
 
 def initialize_app():
     """Initialize the application components with async compatibility."""
