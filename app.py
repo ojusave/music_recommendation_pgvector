@@ -5,6 +5,8 @@ Demonstrates production-ready vector similarity search with natural language que
 
 import asyncio, sys, logging
 from flask import Flask, render_template, request, jsonify
+
+from flask_cors import CORS
 from src import Config, MusicRecommendationEngine
 
 logging.basicConfig(level=Config.LOG_LEVEL)
@@ -12,6 +14,7 @@ logger = logging.getLogger(__name__)
 
 app = Flask(__name__)
 app.config['SECRET_KEY'] = Config.SECRET_KEY
+CORS(app)  # Enable CORS for all routes
 recommendation_engine = MusicRecommendationEngine()
 
 @app.route('/')
