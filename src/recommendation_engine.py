@@ -140,7 +140,8 @@ class MusicRecommendationEngine:
                 song_name, band, similarity_score = row
                 recommendations.append({
                     'song_name': song_name,
-                    'band': band,
+                    'artist': band,  # Frontend expects 'artist' field
+                    'band': band,    # Keep 'band' for backward compatibility  
                     'similarity_score': float(similarity_score),
                     'youtube_url': f"https://www.youtube.com/results?search_query={urllib.parse.quote(f'{song_name} {band}')}",
                     'spotify_url': f"https://open.spotify.com/search/{urllib.parse.quote(f'{song_name} {band}')}"
