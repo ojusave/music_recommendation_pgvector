@@ -46,16 +46,8 @@ def api_recommend():
         if not isinstance(limit, int) or limit < 1 or limit > Config.MAX_RECOMMENDATION_LIMIT:
             limit = Config.DEFAULT_RECOMMENDATION_LIMIT
         
-        # Get recommendations using semantic search with timeout
-        try:
-            recommendations = asyncio.wait_for(
-                recommendation_engine.get_recommendations(query, limit),
-                timeout=25.0  # 25 second timeout
-            )
-            recommendations = asyncio.run(recommendations)
-        except asyncio.TimeoutError:
-            logger.error(f"Search timeout for query: {query}")
-            return jsonify({'success': False, 'error': 'Search timeout - try a simpler query'}), 408
+        # Get recommendations using semantic search (synchronous)
+        recommendations = recommendation_engine.get_recommendations_sync(query, limit)
         
         return jsonify({
             'success': True,
@@ -75,7 +67,7 @@ def api_recommend():
 def api_status():
     """Status endpoint for monitoring database health and statistics."""
     try:
-        stats = asyncio.run(recommendation_engine.get_database_stats())
+        stats = recommendation_engine.get_database_stats_sync()
         return jsonify(stats)
     except Exception as e:
         logger.error(f"Status API error: {e}")
