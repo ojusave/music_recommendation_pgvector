@@ -1,6 +1,6 @@
 """Music Recommendation Engine - Core semantic search using pgvector."""
 
-import asyncio, asyncpg, numpy as np, logging, urllib.parse
+import asyncio, asyncpg, numpy as np, logging, urllib.parse, gc
 from sentence_transformers import SentenceTransformer
 from typing import List, Dict
 from .config import Config
@@ -76,16 +76,13 @@ class MusicRecommendationEngine:
         LIMIT $2
         """
         
-        conn = await asyncpg.connect(Config.DATABASE_URL)
-        try:
-            results = await conn.fetch(search_query, query_vector_str, limit)
-        except Exception as e:
-            await conn.close()
-            if "does not exist" in str(e):
-                raise RuntimeError("Database not initialized")
-            raise e
-        finally:
-            await conn.close()
+        async with self.connection_pool.acquire() as conn:
+            try:
+                results = await conn.fetch(search_query, query_vector_str, limit)
+            except Exception as e:
+                if "does not exist" in str(e):
+                    raise RuntimeError("Database not initialized")
+                raise e
         
         # Convert results to API format with music service links
         recommendations = []
@@ -102,6 +99,10 @@ class MusicRecommendationEngine:
             recommendations.append(rec)
         
         logger.info(f"Generated {len(recommendations)} recommendations")
+        
+        # Force garbage collection to free memory
+        gc.collect()
+        
         return recommendations
     
     def _generate_music_links(self, song_name: str, artist: str) -> Dict[str, str]:
@@ -119,8 +120,7 @@ class MusicRecommendationEngine:
             return {'error': 'Not connected to database'}
         
         try:
-            conn = await asyncpg.connect(Config.DATABASE_URL)
-            try:
+            async with self.connection_pool.acquire() as conn:
                 total_songs = await conn.fetchval("SELECT COUNT(*) FROM songs")
                 sample_artists = await conn.fetch("SELECT band FROM songs LIMIT 10")
                 return {
@@ -128,8 +128,6 @@ class MusicRecommendationEngine:
                     'sample_artists': [row['band'] for row in sample_artists],
                     'status': 'healthy'
                 }
-            finally:
-                await conn.close()
         except Exception as e:
             logger.error(f"Database stats error: {e}")
             return {'error': str(e)}

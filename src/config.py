@@ -35,10 +35,10 @@ class Config:
     KAGGLE_USERNAME = os.getenv('KAGGLE_USERNAME')
     KAGGLE_KEY = os.getenv('KAGGLE_KEY')
     
-    # Database Pool Configuration
+    # Database Pool Configuration - Optimized for 512MB RAM
     DB_MIN_POOL_SIZE = int(os.getenv('DB_MIN_POOL_SIZE', '1'))
-    DB_MAX_POOL_SIZE = int(os.getenv('DB_MAX_POOL_SIZE', '5'))
-    DB_COMMAND_TIMEOUT = int(os.getenv('DB_COMMAND_TIMEOUT', '30'))
+    DB_MAX_POOL_SIZE = int(os.getenv('DB_MAX_POOL_SIZE', '2'))
+    DB_COMMAND_TIMEOUT = int(os.getenv('DB_COMMAND_TIMEOUT', '60'))
     
     # Application Configuration
     APP_NAME = os.getenv('APP_NAME', 'music_recommendations')
