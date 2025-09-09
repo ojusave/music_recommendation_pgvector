@@ -8,7 +8,7 @@ gunicorn==21.2.0
 
 # Database and Vector Operations - Python 3.13 Compatible
 asyncpg>=0.30.0,<1.0.0
-psycopg[binary]>=3.1.0,<4.0.0
+psycopg2-binary>=2.9.7,<3.0.0
 
 # Data Processing - Python 3.13 Compatible
 numpy>=1.26.0,<2.0.0
