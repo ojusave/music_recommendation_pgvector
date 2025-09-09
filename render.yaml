@@ -3,7 +3,7 @@ services:
     name: music-recommendations
     env: python
     plan: free
-    buildCommand: pip install -r requirements.txt
+    buildCommand: pip install -r requirements.txt && python -c "from sentence_transformers import SentenceTransformer; SentenceTransformer('all-MiniLM-L6-v2')"
     startCommand: gunicorn --bind 0.0.0.0:$PORT app:app --workers 1 --timeout 120 --max-requests 100 --max-requests-jitter 10 --preload
     envVars:
       - key: PYTHON_VERSION
