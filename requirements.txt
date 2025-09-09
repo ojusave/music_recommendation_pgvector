@@ -14,13 +14,9 @@ psycopg2-binary==2.9.7
 numpy==1.24.3
 pandas==2.0.3
 
-# Machine Learning - CPU-only PyTorch first
---index-url https://download.pytorch.org/whl/cpu
-torch==2.0.1+cpu
-
-# Then other ML packages from default index
---index-url https://pypi.org/simple/
-sentence-transformers==3.1.1
+# Machine Learning - Compatible versions for current deployment
+sentence-transformers==2.2.2
+torch==2.1.0
 
 # Kaggle API
 kaggle==1.5.16
