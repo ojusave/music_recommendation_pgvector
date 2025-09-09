@@ -46,8 +46,16 @@ def api_recommend():
         if not isinstance(limit, int) or limit < 1 or limit > Config.MAX_RECOMMENDATION_LIMIT:
             limit = Config.DEFAULT_RECOMMENDATION_LIMIT
         
-        # Get recommendations using semantic search
-        recommendations = asyncio.run(recommendation_engine.get_recommendations(query, limit))
+        # Get recommendations using semantic search with timeout
+        try:
+            recommendations = asyncio.wait_for(
+                recommendation_engine.get_recommendations(query, limit),
+                timeout=25.0  # 25 second timeout
+            )
+            recommendations = asyncio.run(recommendations)
+        except asyncio.TimeoutError:
+            logger.error(f"Search timeout for query: {query}")
+            return jsonify({'success': False, 'error': 'Search timeout - try a simpler query'}), 408
         
         return jsonify({
             'success': True,
@@ -56,8 +64,11 @@ def api_recommend():
             'count': len(recommendations)
         })
         
+    except MemoryError as e:
+        logger.error(f"Memory error in recommendation API: {e}")
+        return jsonify({'success': False, 'error': 'Server overloaded - please try again'}), 503
     except Exception as e:
-        logger.error(f"Recommendation API error: {e}")
+        logger.error(f"Recommendation API error: {e}", exc_info=True)
         return jsonify({'success': False, 'error': 'Internal server error'}), 500
 
 @app.route('/api/status')
